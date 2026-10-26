@@ -31,6 +31,15 @@ jobs:
             mingw-w64-x86_64-qwt-qt5
             make
             pkgconf
+      - name: Build Hamlib for MinGW
+        run: |
+          git clone --depth 1 --branch 4.6.3 https://github.com/Hamlib/Hamlib.git hamlib-src
+          cd hamlib-src
+          ./bootstrap
+          ./configure --prefix=/mingw64 --disable-shared --enable-static --without-cxx-binding
+          make -j2
+          make install
+          test -f /mingw64/include/hamlib/rig.h
       - name: Compile Windows executable
         run: |
           mkdir -p build-windows
