@@ -1,0 +1,47 @@
+name: Linux DEB experimental
+on:
+  push:
+    branches: ["feature/windows-port-implementation"]
+    paths:
+      - 'src/**'
+      - 'scripts/package-deb.sh'
+      - '.github/workflows/linux-deb.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deb:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config qtbase5-dev qt5-qmake qtbase5-dev-tools libqt5svg5-dev qtmultimedia5-dev libqt5multimedia5-plugins libfftw3-dev libhamlib-dev libasound2-dev libpulse-dev libopenjp2-7-dev libv4l-dev libqwt-qt5-dev
+          sudo apt-get install -y dpkg-dev
+      - name: Build QSSTV
+        run: |
+          mkdir -p build-linux
+          cd build-linux
+          qmake ../src/qsstv.pro CONFIG+=release
+          make -j2
+          test -x qsstv
+      - name: Create Debian package
+        run: |
+          version="0.0.0+git$(git rev-parse --short=8 HEAD)"
+          bash scripts/package-deb.sh build-linux/qsstv "$version"
+      - name: Verify package
+        run: |
+          set -euo pipefail
+          deb=$(find out -maxdepth 1 -name "qsstv_*_amd64.deb" -type f -print -quit)
+          test -n "$deb"
+          test "$(dpkg-deb -f "$deb" Package)" = qsstv
+          test "$(dpkg-deb -f "$deb" Architecture)" = amd64
+          dpkg-deb -f "$deb" Depends | grep -q lib
+          dpkg-deb --contents "$deb" | grep -q /usr/bin/qsstv
+          dpkg-deb --contents "$deb" | grep -q /usr/share/applications/qsstv.desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QSSTV-Linux-DEB-experimental
+          path: out/*.deb
+          if-no-files-found: error
