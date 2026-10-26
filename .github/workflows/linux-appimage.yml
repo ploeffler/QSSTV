@@ -30,7 +30,7 @@ jobs:
           mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/128x128/apps
           cp build-linux/qsstv AppDir/usr/bin/qsstv
           cp src/icons/qsstv.png AppDir/usr/share/icons/hicolor/128x128/apps/qsstv.png
-          cp src/qsstv.desktop AppDir/usr/share/applications/qsstv.desktop
+          cp qsstv.desktop AppDir/usr/share/applications/qsstv.desktop
           ln -s usr/share/applications/qsstv.desktop AppDir/qsstv.desktop
           ln -s usr/share/icons/hicolor/128x128/apps/qsstv.png AppDir/qsstv.png
       - name: Bundle AppImage
