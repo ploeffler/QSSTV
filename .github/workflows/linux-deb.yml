@@ -1,11 +1,14 @@
 name: Linux DEB experimental
 on:
   push:
-    branches: ["feature/windows-port-implementation"]
+    branches: [main, "feature/windows-port-implementation"]
     paths:
       - 'src/**'
       - 'scripts/package-deb.sh'
       - '.github/workflows/linux-deb.yml'
+      - 'qsstv.desktop'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
