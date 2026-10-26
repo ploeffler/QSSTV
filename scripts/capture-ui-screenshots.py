@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 from PyQt5 import QtCore, QtWidgets, uic
-from PyQt5.uic.Loader import DynamicUILoader
+from PyQt5.uic.Loader.loader import DynamicUILoader
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
