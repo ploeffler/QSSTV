@@ -35,3 +35,28 @@ Do **not** import UI styling, icons, splash screens, layouts, QSSTVMania brandin
 - Document limitations and test evidence in each PR.
 - Keep release 9.5.8 unchanged; select the next experimental version only when fixes are validated.
 - Never merge or publish without explicit approval.
+
+## Change provenance and pull-request register
+
+This register records both the **source PR** and the **local integration PR** for each change. Do not describe a proposed change as implemented before its implementation PR has been merged.
+
+| Change | Source PR | QSSTV PR | Status | Notes |
+| --- | --- | --- | --- | --- |
+| RX synchronization dropout tolerance | [ON4QZ/QSSTV#80](https://github.com/ON4QZ/QSSTV/pull/80) | Not created yet | Proposed; not implemented | Proposed edits to `src/sstv/syncprocessor.cpp`; test independently |
+| VIS/FSK retrace threshold | [ON4QZ/QSSTV#80](https://github.com/ON4QZ/QSSTV/pull/80) | Not created yet | Proposed; not implemented | Proposed 290 ms → 350 ms in `src/sstv/visfskid.h`; test independently |
+| Preparation, scope and validation plan | [ON4QZ/QSSTV#80](https://github.com/ON4QZ/QSSTV/pull/80) | [ploeffler/QSSTV#10](https://github.com/ploeffler/QSSTV/pull/10) | Draft documentation PR; not merged | Documents candidates and release gates; does not change decoder behavior |
+| UI redesign and QSSTVMania rebranding | [ON4QZ/QSSTV#80](https://github.com/ON4QZ/QSSTV/pull/80) | None | Explicitly rejected | No styling, SVG icons, layouts, splash screen or rebranding |
+
+### Recording subsequent implementation work
+
+When an implementation PR is created, update the corresponding row with its PR number and status. Each implementation PR must document:
+
+- The original source PR and relevant files/lines or commits.
+- The precise code changes adopted, altered or deliberately omitted.
+- Baseline and modified decoding test results, including WAV fixture provenance.
+- CI run links and any remaining manual radio/audio testing.
+- Merge commit and experimental release tag **only after** those events actually occur.
+
+### Release history distinction
+
+[Experimental v9.5.8](https://github.com/ploeffler/QSSTV/releases/tag/v9.5.8) predates this work and does not include either proposed decoder modification. The next version number and release PR are not yet assigned.
