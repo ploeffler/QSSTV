@@ -2,10 +2,7 @@ name: Linux AppImage experimental
 on:
   push:
     branches: [main, "feature/windows-port-implementation"]
-    paths:
-      - 'src/**'
-      - '.github/workflows/linux-appimage.yml'
-      - 'qsstv.desktop'
+    # Every main commit needs artifacts for the same-commit unified release.
   pull_request:
     branches: [main]
   workflow_dispatch:

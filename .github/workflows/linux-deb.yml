@@ -2,11 +2,7 @@ name: Linux DEB experimental
 on:
   push:
     branches: [main, "feature/windows-port-implementation"]
-    paths:
-      - 'src/**'
-      - 'scripts/package-deb.sh'
-      - '.github/workflows/linux-deb.yml'
-      - 'qsstv.desktop'
+    # Every main commit needs artifacts for the same-commit unified release.
   pull_request:
     branches: [main]
   workflow_dispatch:
