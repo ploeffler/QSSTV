@@ -25,6 +25,8 @@ INCLUDEPATH += config dispatch drmrx drmtx dsp editor logbook mainwidgets rig sc
 
 CONFIG += link_pkgconfig
 win32 {
+    # Ensure Winsock2 precedes any transitive windows.h inclusion (e.g. via Qt).
+    QMAKE_CXXFLAGS += -include winsock2.h
     QT += multimedia
     # MSYS2 OpenJPEG headers are installed under include/openjpeg-2.x.
     # Resolve the versioned include directory through pkg-config.
