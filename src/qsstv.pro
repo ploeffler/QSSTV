@@ -26,10 +26,14 @@ INCLUDEPATH += config dispatch drmrx drmtx dsp editor logbook mainwidgets rig sc
 CONFIG += link_pkgconfig
 win32 {
     QT += multimedia
+    # MSYS2 OpenJPEG headers are installed under include/openjpeg-2.x.
+    # Resolve the versioned include directory through pkg-config.
+    CONFIG += link_pkgconfig
+    PKGCONFIG += libopenjp2
     SOURCES += sound/soundwindows.cpp
     HEADERS += sound/soundwindows.h
     # Windows dependencies are provided by the selected MSYS2/MinGW toolchain.
-    LIBS += -lfftw3f -lfftw3 -lhamlib -lopenjp2
+    LIBS += -lfftw3f -lfftw3 -lhamlib
 } else {
     SOURCES += sound/soundpulse.cpp
     HEADERS += sound/soundpulse.h
