@@ -1,3 +1,16 @@
+#ifdef Q_OS_WIN
+#include "ipcmessage.h"
+#include <QDebug>
+
+// System V message queues are unavailable on Windows.
+// This temporary implementation preserves the build but disables
+// external logbook IPC until a native transport is implemented.
+ipcMessage::ipcMessage(int messageKey) : key(messageKey), messageQId(-1), rc(-1), done(0) {}
+ipcMessage::~ipcMessage() {}
+bool ipcMessage::sendMessage(QString t) { Q_UNUSED(t); return false; }
+bool ipcMessage::receiveMessage(QString &t) { Q_UNUSED(t); return false; }
+bool ipcMessage::closeQueue() { return true; }
+#else
 #include "ipcmessage.h"
 
 #include <QDebug>
@@ -78,3 +91,5 @@ bool ipcMessage::closeQueue()
     }
   return 0;
 }
+
+#endif // Q_OS_WIN
