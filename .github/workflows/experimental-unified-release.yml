@@ -1,0 +1,87 @@
+name: QSSTV unified experimental release
+
+on:
+  workflow_run:
+    workflows:
+      - Windows experimental build
+      - Linux DEB experimental
+      - Linux AppImage experimental
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: experimental-release-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Collect successful builds from the same commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p incoming/windows incoming/deb incoming/appimage release
+          # Do not mix builds from different commits, branches or PRs.
+          get_run() {
+            local workflow="$1" id
+            id="$(gh run list --repo "$GH_REPO" --workflow "$workflow" --commit "$TARGET_SHA" --status success --limit 100 --json databaseId,headSha,headBranch,event,conclusion |
+              jq -r --arg sha "$TARGET_SHA" '[.[] | select(.headSha == $sha and .headBranch == "main" and (.event == "push" or .event == "workflow_dispatch") and .conclusion == "success")] | sort_by(.databaseId) | last | .databaseId // empty')"
+            if [[ -z "$id" ]]; then
+              echo "::error::No successful main-branch build for $workflow at $TARGET_SHA"
+              exit 1
+            fi
+            printf '%s' "$id"
+          }
+          win="$(get_run 'Windows experimental build')"
+          deb="$(get_run 'Linux DEB experimental')"
+          app="$(get_run 'Linux AppImage experimental')"
+          gh run download "$win" --repo "$GH_REPO" --name QSSTV-Windows-experimental --dir incoming/windows
+          gh run download "$deb" --repo "$GH_REPO" --name QSSTV-Linux-DEB-experimental --dir incoming/deb
+          gh run download "$app" --repo "$GH_REPO" --name QSSTV-Linux-AppImage-experimental --dir incoming/appimage
+          test -f incoming/windows/qsstv.exe
+          test -n "$(find incoming/deb -type f -name '*.deb' -print -quit)"
+          test -n "$(find incoming/appimage -type f -name '*.AppImage' -print -quit)"
+          short="${TARGET_SHA:0:8}"
+          (cd incoming/windows && zip -qr "../../release/QSSTV-Windows-x86_64-${short}.zip" .)
+          debfile="$(find incoming/deb -type f -name '*.deb' -print -quit)"
+          appfile="$(find incoming/appimage -type f -name '*.AppImage' -print -quit)"
+          cp "$debfile" "release/QSSTV-Linux-amd64-${short}.deb"
+          cp "$appfile" "release/QSSTV-Linux-x86_64-${short}.AppImage"
+          (cd release && sha256sum QSSTV-* > SHA256SUMS.txt)
+          cat > release-notes.md <<EOF
+          Experimental QSSTV builds from commit ${TARGET_SHA} on main.
+
+          Included: Windows x86_64 ZIP, Linux amd64 DEB, Linux x86_64 AppImage, and SHA-256 checksums.
+
+          These are experimental, not stable releases. Extract the entire Windows ZIP before running qsstv.exe. Hardware and audio behavior require manual testing.
+
+          Source workflows: Windows experimental build #${win}; Linux DEB experimental #${deb}; Linux AppImage experimental #${app}.
+          EOF
+          echo "TAG=experimental-${short}" >> "$GITHUB_ENV"
+      - name: Publish unified prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; not overwriting assets."
+            exit 0
+          fi
+          gh release create "$TAG" release/* --repo "$GH_REPO" --target main --title "QSSTV Experimental $TAG" --prerelease --notes-file release-notes.md
