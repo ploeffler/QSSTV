@@ -1,0 +1,110 @@
+name: Windows experimental build
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write # Required only for publishing the experimental release asset
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-qt5-base
+            mingw-w64-x86_64-qt5-multimedia
+            mingw-w64-x86_64-qt5-svg
+            mingw-w64-x86_64-fftw
+            mingw-w64-x86_64-openjpeg2
+            mingw-w64-x86_64-qwt-qt5
+            make
+            git
+            autoconf
+            automake
+            libtool
+            pkgconf
+      - name: Build Hamlib for MinGW
+        run: |
+          git clone --depth 1 --branch 4.6.3 https://github.com/Hamlib/Hamlib.git hamlib-src
+          cd hamlib-src
+          # Hamlib 4.6.3 precise_time.c uses assert() without including assert.h.
+          # Apply a build-local compatibility fix; do not modify QSSTV sources.
+          sed -i '1i #include <assert.h>' lib/precise_time.c
+          ./bootstrap
+          ./configure --prefix=/mingw64 --disable-shared --enable-static --without-cxx-binding
+          make -j2
+          make install
+          test -f /mingw64/include/hamlib/rig.h
+      - name: Compile Windows executable
+        run: |
+          mkdir -p build-windows
+          cd build-windows
+          command -v qmake-qt5 || true
+          ls -la /mingw64/bin/*qmake* || true
+          /mingw64/bin/qmake-qt5.exe ../src/qsstv.pro CONFIG+=release
+          mingw32-make -j2
+          test -f release/qsstv.exe || test -f qsstv.exe
+      - name: Collect executable
+        if: success()
+        run: |
+          mkdir -p dist
+          cp build-windows/release/qsstv.exe dist/ 2>/dev/null || cp build-windows/qsstv.exe dist/
+          # Discover Qt5 deployment tool across MSYS2 package layouts.
+          deploy_tool=""
+          for candidate in /mingw64/bin/windeployqt*.exe /mingw64/share/qt5/bin/windeployqt*.exe; do
+            if test -x "$candidate"; then
+              deploy_tool="$candidate"
+              break
+            fi
+          done
+          if test -n "$deploy_tool"; then
+            "$deploy_tool" dist/qsstv.exe
+          else
+            echo "Qt5 windeployqt unavailable; packaging executable and runtime DLLs explicitly"
+            cp /mingw64/bin/Qt5*.dll dist/
+            cp /mingw64/bin/libgcc_s_seh-1.dll /mingw64/bin/libstdc++-6.dll /mingw64/bin/libwinpthread-1.dll dist/
+            mkdir -p dist/platforms
+            cp /mingw64/share/qt5/plugins/platforms/qwindows.dll dist/platforms/ 2>/dev/null || cp /mingw64/lib/qt5/plugins/platforms/qwindows.dll dist/platforms/
+            for dll in libfftw3f-3.dll libfftw3-3.dll libopenjp2-7.dll libqwt-qt5.dll; do
+              if test -f "/mingw64/bin/$dll"; then cp "/mingw64/bin/$dll" dist/; fi
+            done
+          fi
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: QSSTV-Windows-experimental
+          path: dist/
+      - name: Package Windows release ZIP
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/feature/windows-port-implementation'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/* -DestinationPath QSSTV-Windows-experimental.zip -Force
+          if (-not (Test-Path QSSTV-Windows-experimental.zip)) { throw "Release ZIP missing" }
+      - name: Publish experimental Windows prerelease
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/feature/windows-port-implementation'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-experimental-${{ github.run_number }}
+          name: QSSTV Windows Experimental #${{ github.run_number }}
+          prerelease: true
+          generate_release_notes: false
+          body: |
+            Experimental Windows build from branch feature/windows-port-implementation.
+            Not yet validated on a Windows desktop. Extract the complete ZIP before starting qsstv.exe.
+            Commit: ${{ github.sha }}
+          files: QSSTV-Windows-experimental.zip
+          fail_on_unmatched_files: true

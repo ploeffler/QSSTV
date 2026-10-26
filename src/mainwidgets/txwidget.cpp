@@ -656,7 +656,7 @@ void txWidget::slotResizeChanged(int i)
 
 void txWidget::slotSnapshot()
 {
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(Q_OS_WIN)
   QImage *im;
   cameraDialog camera;
   if(camera.exec()==QDialog::Accepted)

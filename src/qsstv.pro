@@ -24,7 +24,27 @@ INCLUDEPATH += config dispatch drmrx drmtx dsp editor logbook mainwidgets rig sc
 #QMAKE_LIBDIR += $$[QT_SYSROOT]/usr/local/lib
 
 CONFIG += link_pkgconfig
-PKGCONFIG += libopenjp2 fftw3 libpulse libpulse-simple hamlib
+# System V IPC on Linux, Windows stub on MinGW; both require this translation unit.
+SOURCES += xmlrpc/ipcmessage.cpp
+win32 {
+    # Ensure Winsock2 precedes any transitive windows.h inclusion (e.g. via Qt).
+    QMAKE_CXXFLAGS += -include winsock2.h
+    QT += multimedia
+    # MSYS2 OpenJPEG headers are installed under include/openjpeg-2.x.
+    # Resolve the versioned include directory through pkg-config.
+    CONFIG += link_pkgconfig
+    PKGCONFIG += libopenjp2
+    # System V IPC message queues are Unix-only; Windows uses the Qt XML-RPC path.
+    SOURCES += sound/soundwindows.cpp
+    HEADERS += sound/soundwindows.h
+    # Windows dependencies are provided by the selected MSYS2/MinGW toolchain.
+    # Static Hamlib requires Windows Winsock and IP Helper libraries.
+    LIBS += -lfftw3f -lfftw3 -lhamlib -lws2_32 -liphlpapi
+} else {
+    SOURCES += sound/soundpulse.cpp
+    HEADERS += sound/soundpulse.h
+    PKGCONFIG += libopenjp2 fftw3 libpulse libpulse-simple hamlib
+}
 TARGET = qsstv
 macx {
  # Enable pkg-config (pkg-config is disabled by default in the Qt package for mac)
@@ -46,7 +66,6 @@ SOURCES += main.cpp\
     config/directoriesconfig.cpp \
     config/configdialog.cpp \
     sound/soundbase.cpp \
-    sound/soundpulse.cpp \
     widgets/spectrumwidget.cpp \
     widgets/vumeter.cpp \
     widgets/fftdisplay.cpp \
@@ -153,7 +172,6 @@ SOURCES += main.cpp\
     utils/qurlinfo.cpp \
     utils/reedsolomoncoder.cpp \
     utils/rs.cpp \
-    xmlrpc/ipcmessage.cpp \
     xmlrpc/maiaFault.cpp \
     xmlrpc/maiaObject.cpp \
     xmlrpc/maiaXmlRpcClient.cpp \
@@ -193,7 +211,7 @@ SOURCES += main.cpp\
     editor/basegraphicitem.cpp \
     editor/templateviewer.cpp
 
-!macx: SOURCES += sound/soundalsa.cpp \
+unix:!macx: SOURCES += sound/soundalsa.cpp \
     videocapt/cameradialog.cpp \
     videocapt/imagesettings.cpp \
     videocapt/v4l2control.cpp \
@@ -215,7 +233,6 @@ HEADERS  += mainwindow.h \
     appdefs.h \
     config/configdialog.h \
     sound/soundbase.h \
-    sound/soundpulse.h \
     widgets/spectrumwidget.h \
     widgets/vumeter.h \
     widgets/fftdisplay.h \
@@ -365,7 +382,7 @@ HEADERS  += mainwindow.h \
     editor/basegraphicitem.h \
     editor/templateviewer.h
 
-!macx: HEADERS +=  sound/soundalsa.h \
+unix:!macx: HEADERS +=  sound/soundalsa.h \
     videocapt/cameradialog.h \
     videocapt/imagesettings.h \
     videocapt/v4l2control.h \
@@ -411,7 +428,7 @@ FORMS += mainwindow.ui \
     widgets/testpatternselection.ui \
     editor/templateviewer.ui
 
-!macx: FORMS += videocapt/cameradialog.ui \
+unix:!macx: FORMS += videocapt/cameradialog.ui \
     videocapt/imagesettings.ui
 
 
@@ -590,13 +607,9 @@ DISTFILES += \
 
 INSTALLS += target
 
-LIBS +=  -lpulse \
-         -lpulse-simple \
-         -lfftw3f \
-         -lfftw3 \
-         -lhamlib
+!win32: LIBS += -lpulse -lpulse-simple -lfftw3f -lfftw3 -lhamlib
 
-!macx: LIBS +=  -lasound \
+unix:!macx: LIBS +=  -lasound \
          -lv4l2 \
          -lv4lconvert \
          -lrt
@@ -612,6 +625,6 @@ HEADERS  += scope/scopeoffset.h \
 FORMS   += scope/scopeoffset.ui \
                 scope/plotform.ui
 
-!macx: INCLUDEPATH += /usr/include/qwt /usr/include/qt5/qwt
+unix:!macx: INCLUDEPATH += /usr/include/qwt /usr/include/qt5/qwt
 !macx: LIBS += -lqwt-qt5
 }
