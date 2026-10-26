@@ -8,7 +8,6 @@ import os
 import sys
 from pathlib import Path
 from PyQt5 import QtCore, QtWidgets, uic
-from PyQt5.uic.Loader.loader import DynamicUILoader
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,8 +28,37 @@ def load_form(source):
         base = getattr(QtWidgets, extends, QtWidgets.QWidget)
         # Placeholder for QSSTV runtime widgets, preserving the Qt layout.
         custom[name] = type(name, (base,), {})
-    loader = DynamicUILoader(customWidgets=custom)
-    return loader.loadUi(str(source))
+    # PyQt5 on Ubuntu 22.04 does not expose customWidgets in loadUi.
+    # Compile the .ui into a temporary module and supply placeholder classes
+    # through an import hook for promoted widget headers.
+    import importlib
+    import tempfile
+    import types
+    from PyQt5.uic import compileUi
+    from io import StringIO
+    from unittest.mock import patch
+    generated = StringIO()
+    with source.open('r', encoding='utf-8') as ui_file:
+        compileUi(ui_file, generated)
+    code = generated.getvalue()
+    # Generated modules may import custom widgets from their configured headers.
+    # Register local temporary stand-ins, without importing C++ QSSTV modules.
+    modules = {}
+    for entry in tree.findall('.//customwidgets/customwidget'):
+        header = entry.findtext('header')
+        name = entry.findtext('class')
+        if header and name:
+            module_name = header.replace('/', '.').removesuffix('.h').removesuffix('.py')
+            module = modules.setdefault(module_name, types.ModuleType(module_name))
+            setattr(module, name, custom[name])
+    with patch.dict(sys.modules, modules):
+        namespace = {'__name__': '_qsstv_ui_preview'}
+        exec(compile(code, str(source), 'exec'), namespace)
+        form = next(value for key, value in namespace.items() if key.startswith('Ui_') and isinstance(value, type))
+        widget_class = getattr(QtWidgets, tree.findtext('./widget/class'), QtWidgets.QWidget)
+        widget = widget_class()
+        form().setupUi(widget)
+        return widget
 
 def main():
     output = Path(sys.argv[1] if len(sys.argv) > 1 else "screenshots")
