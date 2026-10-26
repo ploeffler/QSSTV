@@ -7,7 +7,8 @@ runtime painting and behaviour cannot be reproduced by loading .ui alone.
 import os
 import sys
 from pathlib import Path
-from PyQt5 import QtCore, QtWidgets, QtUiTools
+from PyQt5 import QtCore, QtWidgets, uic
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 FORMS = {
@@ -18,37 +19,24 @@ FORMS = {
     "configuration": "src/config/configdialog.ui",
 }
 
-class Loader(QtUiTools.QUiLoader):
-    def createWidget(self, className, parent=None, name=""):
-        try:
-            widget = super().createWidget(className, parent, name)
-        except RuntimeError:
-            widget = None
-        if widget is None:
-            widget = QtWidgets.QFrame(parent)
-            widget.setFrameShape(QtWidgets.QFrame.StyledPanel)
-            layout = QtWidgets.QVBoxLayout(widget)
-            label = QtWidgets.QLabel(className + " (runtime widget)", widget)
-            label.setAlignment(QtCore.Qt.AlignCenter)
-            layout.addWidget(label)
-            widget.setMinimumSize(160, 100)
-        widget.setObjectName(name)
-        return widget
+def load_form(source):
+    tree = ET.parse(source)
+    custom = {}
+    for entry in tree.findall(".//customwidgets/customwidget"):
+        name = entry.findtext("class")
+        extends = entry.findtext("extends", default="QWidget")
+        base = getattr(QtWidgets, extends, QtWidgets.QWidget)
+        # Placeholder for QSSTV runtime widgets, preserving the Qt layout.
+        custom[name] = type(name, (base,), {})
+    return uic.loadUi(str(source), customWidgets=custom)
 
 def main():
     output = Path(sys.argv[1] if len(sys.argv) > 1 else "screenshots")
     output.mkdir(parents=True, exist_ok=True)
     app = QtWidgets.QApplication(sys.argv)
-    loader = Loader()
     for label, path in FORMS.items():
         source = ROOT / path
-        qfile = QtCore.QFile(str(source))
-        if not qfile.open(QtCore.QIODevice.ReadOnly):
-            raise RuntimeError("Cannot open " + str(source))
-        widget = loader.load(qfile)
-        qfile.close()
-        if widget is None:
-            raise RuntimeError("Cannot load " + path + ": " + loader.errorString())
+        widget = load_form(source)
         widget.resize(max(widget.width(), 1100), max(widget.height(), 760))
         widget.show()
         app.processEvents()
