@@ -35,7 +35,9 @@ jobs:
         run: |
           mkdir -p build-windows
           cd build-windows
-          /mingw64/bin/qmake.exe ../src/qsstv.pro CONFIG+=release
+          command -v qmake-qt5 || true
+          ls -la /mingw64/bin/*qmake* || true
+          /mingw64/bin/qmake-qt5.exe ../src/qsstv.pro CONFIG+=release
           mingw32-make -j2
           test -f release/qsstv.exe || test -f qsstv.exe
       - name: Collect executable
