@@ -12,6 +12,8 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    permissions:
+      contents: write # Required only for publishing the experimental release asset
     defaults:
       run:
         shell: msys2 {0}
@@ -86,3 +88,23 @@ jobs:
         with:
           name: QSSTV-Windows-experimental
           path: dist/
+      - name: Package Windows release ZIP
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/feature/windows-port-implementation'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/* -DestinationPath QSSTV-Windows-experimental.zip -Force
+          if (-not (Test-Path QSSTV-Windows-experimental.zip)) { throw "Release ZIP missing" }
+      - name: Publish experimental Windows prerelease
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/feature/windows-port-implementation'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-experimental-${{ github.run_number }}
+          name: QSSTV Windows Experimental #${{ github.run_number }}
+          prerelease: true
+          generate_release_notes: false
+          body: |
+            Experimental Windows build from branch feature/windows-port-implementation.
+            Not yet validated on a Windows desktop. Extract the complete ZIP before starting qsstv.exe.
+            Commit: ${{ github.sha }}
+          files: QSSTV-Windows-experimental.zip
+          fail_on_unmatched_files: true
