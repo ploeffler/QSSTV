@@ -1,0 +1,52 @@
+name: Windows experimental build
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-qt5-base
+            mingw-w64-x86_64-qt5-multimedia
+            mingw-w64-x86_64-qt5-svg
+            mingw-w64-x86_64-fftw
+            mingw-w64-x86_64-hamlib
+            mingw-w64-x86_64-openjpeg2
+            mingw-w64-x86_64-qwt-qt5
+            make
+            pkgconf
+      - name: Compile Windows executable
+        run: |
+          mkdir -p build-windows
+          cd build-windows
+          qmake ../src/qsstv.pro CONFIG+=release
+          mingw32-make -j2
+          test -f release/qsstv.exe || test -f qsstv.exe
+      - name: Collect executable
+        if: success()
+        run: |
+          mkdir -p dist
+          cp build-windows/release/qsstv.exe dist/ 2>/dev/null || cp build-windows/qsstv.exe dist/
+          windeployqt dist/qsstv.exe
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: QSSTV-Windows-experimental
+          path: dist/
