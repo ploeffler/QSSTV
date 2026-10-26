@@ -34,7 +34,8 @@ win32 {
     SOURCES += sound/soundwindows.cpp
     HEADERS += sound/soundwindows.h
     # Windows dependencies are provided by the selected MSYS2/MinGW toolchain.
-    LIBS += -lfftw3f -lfftw3 -lhamlib
+    # Static Hamlib requires Windows Winsock and IP Helper libraries.
+    LIBS += -lfftw3f -lfftw3 -lhamlib -lws2_32 -liphlpapi
 } else {
     SOURCES += xmlrpc/ipcmessage.cpp
     SOURCES += sound/soundpulse.cpp
