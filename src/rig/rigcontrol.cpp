@@ -30,9 +30,11 @@
 #include <QSplashScreen>
 #include <QMessageBox>
 #include <QApplication>
+#ifndef Q_OS_WIN
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
+#endif
 
 
 #define MAXCONFLEN 128
@@ -383,9 +385,16 @@ bool model_Sort(const rig_caps *caps1,const rig_caps *caps2)
 
 void rigControl::activatePTT(bool b)
 {
+  #ifndef Q_OS_WIN
   int modemlines;
+  #endif
   if(catParams.enableSerialPTT)
     {
+#ifdef Q_OS_WIN
+      // Serial DTR/RTS PTT requires a Windows-specific implementation.
+      // Do not attempt Unix ioctl operations or silently key the radio.
+      if(b) addToLog("Serial PTT via DTR/RTS is not yet supported on Windows", LOGALL);
+#else
       if (catParams.pttSerialPort.isEmpty()) return;
       if(serialP==0)
         {
@@ -431,6 +440,7 @@ void rigControl::activatePTT(bool b)
               ioctl(serialP,TIOCMSET,&modemlines);
             }
         }
+#endif
     }
   else if(catParams.enableXMLRPC)
     {
