@@ -52,3 +52,14 @@ You can also run qmake with the following attributes:
 `qmake CONFIG+=debug`
 
 and use an external debugger (such as gdb)
+
+## Experimental cross-platform builds
+
+QSSTV now has experimental GitHub Actions builds for **Windows x86_64**, **Linux x86_64 AppImage** and **Linux amd64 DEB**. All three builds succeeded on `main` at commit `c7dd2dce`.
+
+These builds are **not yet validated on real radio hardware** and must not be treated as stable releases. See the [experimental release notes](documentation/RELEASE_NOTES_EXPERIMENTAL.md) for download links and the testing checklist.
+
+Further documentation:
+- [Packaging and installation](documentation/PACKAGING.md)
+- [Windows port and validation](documentation/WINDOWS_PORT.md)
+- [Development roadmap](documentation/ROADMAP.md)
