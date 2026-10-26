@@ -1,0 +1,221 @@
+name: Publish QSSTV experimental release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 9.5.1)'
+        required: true
+        default: '9.5.1'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-qt5-base
+            mingw-w64-x86_64-qt5-multimedia
+            mingw-w64-x86_64-qt5-svg
+            mingw-w64-x86_64-fftw
+            mingw-w64-x86_64-openjpeg2
+            mingw-w64-x86_64-qwt-qt5
+            make
+            git
+            autoconf
+            automake
+            libtool
+            pkgconf
+      - name: Build Hamlib for MinGW
+        run: |
+          git clone --depth 1 --branch 4.6.3 https://github.com/Hamlib/Hamlib.git hamlib-src
+          cd hamlib-src
+          # Hamlib 4.6.3 precise_time.c uses assert() without including assert.h.
+          # Apply a build-local compatibility fix; do not modify QSSTV sources.
+          sed -i '1i #include <assert.h>' lib/precise_time.c
+          ./bootstrap
+          ./configure --prefix=/mingw64 --disable-shared --enable-static --without-cxx-binding
+          make -j2
+          make install
+          test -f /mingw64/include/hamlib/rig.h
+      - name: Compile Windows executable
+        run: |
+          mkdir -p build-windows
+          cd build-windows
+          command -v qmake-qt5 || true
+          ls -la /mingw64/bin/*qmake* || true
+          /mingw64/bin/qmake-qt5.exe ../src/qsstv.pro CONFIG+=release
+          mingw32-make -j2
+          test -f release/qsstv.exe || test -f qsstv.exe
+      - name: Collect executable
+        if: success()
+        run: |
+          mkdir -p dist
+          cp build-windows/release/qsstv.exe dist/ 2>/dev/null || cp build-windows/qsstv.exe dist/
+          # Discover Qt5 deployment tool across MSYS2 package layouts.
+          deploy_tool=""
+          for candidate in /mingw64/bin/windeployqt*.exe /mingw64/share/qt5/bin/windeployqt*.exe; do
+            if test -x "$candidate"; then
+              deploy_tool="$candidate"
+              break
+            fi
+          done
+          if test -n "$deploy_tool"; then
+            "$deploy_tool" dist/qsstv.exe
+          else
+            echo "Qt5 windeployqt unavailable; packaging executable and runtime DLLs explicitly"
+            cp /mingw64/bin/Qt5*.dll dist/
+            cp /mingw64/bin/libgcc_s_seh-1.dll /mingw64/bin/libstdc++-6.dll /mingw64/bin/libwinpthread-1.dll dist/
+            mkdir -p dist/platforms
+            cp /mingw64/share/qt5/plugins/platforms/qwindows.dll dist/platforms/ 2>/dev/null || cp /mingw64/lib/qt5/plugins/platforms/qwindows.dll dist/platforms/
+            for dll in libfftw3f-3.dll libfftw3-3.dll libopenjp2-7.dll libqwt-qt5.dll; do
+              if test -f "/mingw64/bin/$dll"; then cp "/mingw64/bin/$dll" dist/; fi
+            done
+          fi
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: QSSTV-Windows-experimental
+          path: dist/
+  appimage:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config qtbase5-dev qt5-qmake qtbase5-dev-tools libqt5svg5-dev qtmultimedia5-dev libqt5multimedia5-plugins libfftw3-dev libhamlib-dev libasound2-dev libpulse-dev libopenjp2-7-dev libv4l-dev libqwt-qt5-dev
+          sudo apt-get install -y wget file desktop-file-utils
+      - name: Compile QSSTV
+        run: |
+          mkdir -p build-linux
+          cd build-linux
+          qmake ../src/qsstv.pro CONFIG+=release
+          make -j2
+          test -x qsstv
+      - name: Assemble AppDir
+        run: |
+          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/128x128/apps
+          cp build-linux/qsstv AppDir/usr/bin/qsstv
+          cp src/icons/qsstv.png AppDir/usr/share/icons/hicolor/128x128/apps/qsstv.png
+          cp qsstv.desktop AppDir/usr/share/applications/qsstv.desktop
+          ln -s usr/share/applications/qsstv.desktop AppDir/qsstv.desktop
+          ln -s usr/share/icons/hicolor/128x128/apps/qsstv.png AppDir/qsstv.png
+      - name: Bundle AppImage
+        run: |
+          wget -q -O linuxdeploy.AppImage https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q -O linuxdeploy-plugin-qt.AppImage https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy.AppImage linuxdeploy-plugin-qt.AppImage
+          export PATH="$PWD:$PATH"
+          export QMAKE=/usr/bin/qmake
+          export EXTRA_QT_PLUGINS='svg;iconengines;imageformats;platforms'
+          export APPIMAGE_EXTRACT_AND_RUN=1
+          ./linuxdeploy.AppImage --appdir AppDir --plugin qt --output appimage
+          find . -maxdepth 1 -type f -name "*.AppImage" ! -name "linuxdeploy*.AppImage" -size +1M -print -quit | grep -q .
+      - name: Verify AppImage
+        run: |
+          test -x AppDir/usr/bin/qsstv
+          test -f AppDir/usr/share/applications/qsstv.desktop
+          find . -maxdepth 1 -type f -name "*.AppImage" ! -name "linuxdeploy*.AppImage" -size +1M -print -quit | grep -q .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QSSTV-Linux-AppImage-experimental
+          path: |
+            QSSTV*.AppImage
+            qsstv*.AppImage
+          if-no-files-found: error
+  deb:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config qtbase5-dev qt5-qmake qtbase5-dev-tools libqt5svg5-dev qtmultimedia5-dev libqt5multimedia5-plugins libfftw3-dev libhamlib-dev libasound2-dev libpulse-dev libopenjp2-7-dev libv4l-dev libqwt-qt5-dev
+          sudo apt-get install -y dpkg-dev
+      - name: Build QSSTV
+        run: |
+          mkdir -p build-linux
+          cd build-linux
+          qmake ../src/qsstv.pro CONFIG+=release
+          make -j2
+          test -x qsstv
+      - name: Create Debian package
+        run: |
+          version="0.0.0+git$(git rev-parse --short=8 HEAD)"
+          bash scripts/package-deb.sh build-linux/qsstv "$version"
+      - name: Verify package
+        run: |
+          set -euo pipefail
+          deb=$(find out -maxdepth 1 -name "qsstv_*_amd64.deb" -type f -print -quit)
+          test -n "$deb"
+          test "$(dpkg-deb -f "$deb" Package)" = qsstv
+          test "$(dpkg-deb -f "$deb" Architecture)" = amd64
+          dpkg-deb -f "$deb" Depends | grep -q lib
+          # Avoid SIGPIPE from grep -q under pipefail on large dpkg-deb listings.
+          dpkg-deb --contents "$deb" > "$RUNNER_TEMP/qsstv-deb-contents.txt"
+          grep -Fq /usr/bin/qsstv "$RUNNER_TEMP/qsstv-deb-contents.txt"
+          grep -Fq /usr/share/applications/qsstv.desktop "$RUNNER_TEMP/qsstv-deb-contents.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QSSTV-Linux-DEB-experimental
+          path: out/*.deb
+          if-no-files-found: error
+  publish:
+    name: Publish prerelease with three packages
+    runs-on: ubuntu-22.04
+    needs: [windows, appimage, deb]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release input
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == "refs/heads/main" ]] || { echo "Run this workflow from main"; exit 1; }
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Use a numeric version such as 9.5.1"; exit 1; }
+          echo "TAG=v$VERSION" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: QSSTV-*-experimental
+          path: release-assets
+          merge-multiple: false
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist-release
+          test -f release-assets/QSSTV-Windows-experimental/qsstv.exe
+          (cd release-assets/QSSTV-Windows-experimental && zip -qr "$GITHUB_WORKSPACE/dist-release/QSSTV-${{ inputs.version }}-Windows-x86_64.zip" .)
+          find release-assets/QSSTV-Linux-AppImage-experimental -type f -name '*.AppImage' -exec cp -v {} dist-release/ \;
+          find release-assets/QSSTV-Linux-DEB-experimental -type f -name '*.deb' -exec cp -v {} dist-release/ \;
+          test "$(find dist-release -maxdepth 1 -type f | wc -l)" -eq 3
+          ls -lh dist-release
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; refusing to overwrite it"
+            exit 1
+          fi
+          gh release create "$TAG" dist-release/* \
+            --target "$GITHUB_SHA" \
+            --title "QSSTV ${{ inputs.version }} - Experimental" \
+            --notes-file documentation/RELEASE_NOTES_EXPERIMENTAL.md \
+            --prerelease
