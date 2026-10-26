@@ -10,7 +10,7 @@ arch=$(dpkg --print-architecture)
 [[ "$arch" == amd64 ]] || { echo "Expected amd64, got $arch" >&2; exit 1; }
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 icon="$root/src/icons/qsstv.png"
-desktop="$root/src/qsstv.desktop"
+desktop="$root/qsstv.desktop"
 [[ -f "$icon" && -f "$desktop" ]] || { echo "Missing icon or desktop entry" >&2; exit 1; }
 mkdir -p "$root/out"
 work=$(mktemp -d)
