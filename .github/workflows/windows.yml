@@ -30,6 +30,10 @@ jobs:
             mingw-w64-x86_64-openjpeg2
             mingw-w64-x86_64-qwt-qt5
             make
+            git
+            autoconf
+            automake
+            libtool
             pkgconf
       - name: Build Hamlib for MinGW
         run: |
