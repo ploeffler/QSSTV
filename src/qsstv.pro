@@ -41,8 +41,6 @@ win32 {
     # Static Hamlib requires Windows Winsock and IP Helper libraries.
     LIBS += -lfftw3f -lfftw3 -lhamlib -lws2_32 -liphlpapi
 } else {
-    # Linux/macOS System V IPC logbook integration must be linked.
-    SOURCES += xmlrpc/ipcmessage.cpp
     SOURCES += sound/soundpulse.cpp
     HEADERS += sound/soundpulse.h
     PKGCONFIG += libopenjp2 fftw3 libpulse libpulse-simple hamlib
