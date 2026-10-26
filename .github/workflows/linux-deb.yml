@@ -38,8 +38,10 @@ jobs:
           test "$(dpkg-deb -f "$deb" Package)" = qsstv
           test "$(dpkg-deb -f "$deb" Architecture)" = amd64
           dpkg-deb -f "$deb" Depends | grep -q lib
-          dpkg-deb --contents "$deb" | grep -q /usr/bin/qsstv
-          dpkg-deb --contents "$deb" | grep -q /usr/share/applications/qsstv.desktop
+          # Avoid SIGPIPE from grep -q under pipefail on large dpkg-deb listings.
+          dpkg-deb --contents "$deb" > "$RUNNER_TEMP/qsstv-deb-contents.txt"
+          grep -Fq /usr/bin/qsstv "$RUNNER_TEMP/qsstv-deb-contents.txt"
+          grep -Fq /usr/share/applications/qsstv.desktop "$RUNNER_TEMP/qsstv-deb-contents.txt"
       - uses: actions/upload-artifact@v4
         with:
           name: QSSTV-Linux-DEB-experimental
