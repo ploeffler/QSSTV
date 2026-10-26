@@ -1,20 +1,32 @@
-# Windows port: implementation audit
+# Windows port: implementation and validation status
 
-## Confirmed source-level blockers
+## Implemented in modernization PR #4
+- Updated `src/qsstv.pro` to distinguish Windows and Unix-specific dependencies and source files.
+- Added `src/sound/soundwindows.h` and `src/sound/soundwindows.cpp` as a Qt Multimedia-based Windows audio implementation.
+- Updated sound configuration, application UI, transmit widget and platform-dependent rig/XML-RPC code to compile in the Windows build.
+- Added `.github/workflows/windows.yml` for MSYS2/MinGW64, Qt 5 and a locally built Hamlib 4.6.3.
+- Collected `qsstv.exe` and available runtime DLLs/Qt plugins into the `QSSTV-Windows-experimental` Actions artifact.
 
-- `src/qsstv.pro` unconditionally links `libpulse`, `libpulse-simple`, FFTW and Hamlib via pkg-config; its `!macx` sections include ALSA and Video4Linux on Windows as well. Replace `!macx` with explicit `unix:!macx` where Linux-only, and select libraries per platform.
-- `src/sound/soundpulse.h` includes PulseAudio headers and `src/sound/soundalsa.h` includes ALSA headers. Neither is a native Windows backend.
-- `src/sound/soundbase.h` already defines an abstract `soundBase` interface with `init`, `read`, `write`, flush and close methods. Reuse this interface for a Windows audio backend rather than changing modem DSP.
-- `src/main.cpp` uses Qt application APIs; this entry point is not an immediate blocker.
-- Audit references to `soundPulse`, `soundAlsa`, `getCardList`, `timespec`, `v4l2`, POSIX APIs and system-specific paths before making source changes.
+## CI evidence
+The Windows workflow succeeded on `main` at merge commit `c7dd2dce`:
+[Windows build #40361875979](https://github.com/ploeffler/QSSTV/actions/runs/40361875979).
 
-## Proposed staged implementation
+This demonstrates a successful CI compile and package step. It does **not** demonstrate correct sound-card operation, CAT/PTT interoperability, camera capture, or successful SSTV/HAMDRM transmission and reception.
 
-1. Refactor qmake platform conditions and dependency linking, preserving the working Linux build.
-2. Add a Windows sound backend using Qt Multimedia or native WASAPI, matching the existing `soundBase` sample and buffer contract.
-3. Make video capture optional initially, then replace Video4Linux with Qt Multimedia capture on Windows.
-4. Resolve platform-dependent Hamlib, FFTW, OpenJPEG, Qwt and other library dependencies with a reproducible Windows toolchain.
-5. Add a Windows CI compile job; then package Qt DLLs/plugins and application dependencies into a downloadable artifact.
-6. Test RX/TX audio, device enumeration, CAT/PTT, SSTV and HAMDRM on real Windows hardware.
+## Required manual acceptance tests
+1. Extract the complete artifact and start `qsstv.exe` on a clean Windows machine.
+2. Check sound device enumeration, input selection, output selection and sample-rate behavior.
+3. Receive a known SSTV signal and compare the decoded image against a reference.
+4. Transmit a known SSTV test image into a dummy load or controlled test setup and verify decoding.
+5. Test HAMDRM RX/TX and file transfer with a compatible peer.
+6. Check Hamlib CAT control, PTT transitions and device disconnect/reconnect behavior.
+7. Check error handling and logs when audio or radio devices are unavailable.
+8. Record OS version, radio, audio hardware, observed result and reproducible defects.
 
-No Windows build or compatibility is claimed by this audit. Linux AppImage CI is tracked separately in PR #2.
+## Known limitations
+- Windows runtime and hardware validation is still pending.
+- The current build uses Qt 5 and qmake; migration to a newer toolchain is future work.
+- Video capture and other platform-specific behavior require explicit manual validation.
+- The existing Windows workflow's automatic experimental release step is restricted to pushes on `feature/windows-port-implementation`; builds on `main` upload Actions artifacts but do not publish a release.
+
+See [PACKAGING.md](PACKAGING.md) and [RELEASE_NOTES_EXPERIMENTAL.md](RELEASE_NOTES_EXPERIMENTAL.md).
