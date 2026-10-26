@@ -1,0 +1,52 @@
+name: Linux build and AppImage
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-appimage:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt 5 and native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config qtbase5-dev qtbase5-dev-tools qt5-qmake libqt5svg5-dev libfftw3-dev libhamlib-dev libpulse-dev libasound2-dev libopenjp2-7-dev libv4l-dev libqwt-qt5-dev libgl1-mesa-dev
+      - name: Compile release build
+        run: |
+          mkdir -p build
+          cd build
+          qmake ../src/qsstv.pro CONFIG+=release
+          make -j2
+          test -x qsstv
+      - name: Prepare AppDir
+        run: |
+          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/128x128/apps
+          install -m755 build/qsstv AppDir/usr/bin/qsstv
+          install -m644 qsstv.desktop AppDir/usr/share/applications/qsstv.desktop
+          install -m644 src/icons/qsstv.png AppDir/usr/share/icons/hicolor/128x128/apps/qsstv.png
+      - name: Package AppImage
+        env:
+          ARCH: x86_64
+          OUTPUT: QSSTV-x86_64.AppImage
+          EXTRA_QT_PLUGINS: svg
+        run: |
+          curl -fL --retry 3 -o linuxdeploy.AppImage https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          curl -fL --retry 3 -o linuxdeploy-plugin-qt.AppImage https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy.AppImage linuxdeploy-plugin-qt.AppImage
+          mkdir -p tools
+          mv linuxdeploy-plugin-qt.AppImage tools/linuxdeploy-plugin-qt.AppImage
+          PATH="$PWD/tools:$PATH" ./linuxdeploy.AppImage --appdir AppDir --plugin qt --output appimage
+          test -s QSSTV-x86_64.AppImage
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: QSSTV-Linux-x86_64
+          path: QSSTV-x86_64.AppImage
+          if-no-files-found: error
