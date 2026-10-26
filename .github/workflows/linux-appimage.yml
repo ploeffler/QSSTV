@@ -1,0 +1,58 @@
+name: Linux AppImage experimental
+on:
+  push:
+    branches: ["feature/windows-port-implementation"]
+    paths:
+      - 'src/**'
+      - '.github/workflows/linux-appimage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  appimage:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config qtbase5-dev qt5-qmake qtbase5-dev-tools libqt5svg5-dev qtmultimedia5-dev libqt5multimedia5-plugins libfftw3-dev libhamlib-dev libasound2-dev libpulse-dev libopenjp2-7-dev libv4l-dev libqwt-qt5-dev
+          sudo apt-get install -y wget file desktop-file-utils
+      - name: Compile QSSTV
+        run: |
+          mkdir -p build-linux
+          cd build-linux
+          qmake ../src/qsstv.pro CONFIG+=release
+          make -j2
+          test -x qsstv
+      - name: Assemble AppDir
+        run: |
+          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/128x128/apps
+          cp build-linux/qsstv AppDir/usr/bin/qsstv
+          cp src/icons/qsstv.png AppDir/usr/share/icons/hicolor/128x128/apps/qsstv.png
+          cp src/qsstv.desktop AppDir/usr/share/applications/qsstv.desktop
+          ln -s usr/share/applications/qsstv.desktop AppDir/qsstv.desktop
+          ln -s usr/share/icons/hicolor/128x128/apps/qsstv.png AppDir/qsstv.png
+      - name: Bundle AppImage
+        run: |
+          wget -q -O linuxdeploy.AppImage https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q -O linuxdeploy-plugin-qt.AppImage https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy.AppImage linuxdeploy-plugin-qt.AppImage
+          export PATH="$PWD:$PATH"
+          export QMAKE=/usr/bin/qmake
+          export EXTRA_QT_PLUGINS='svg;iconengines;imageformats;platforms'
+          export APPIMAGE_EXTRACT_AND_RUN=1
+          ./linuxdeploy.AppImage --appdir AppDir --plugin qt --output appimage
+          find . -maxdepth 1 -type f -name "*.AppImage" ! -name "linuxdeploy*.AppImage" -size +1M -print -quit | grep -q .
+      - name: Verify AppImage
+        run: |
+          test -x AppDir/usr/bin/qsstv
+          test -f AppDir/usr/share/applications/qsstv.desktop
+          find . -maxdepth 1 -type f -name "*.AppImage" ! -name "linuxdeploy*.AppImage" -size +1M -print -quit | grep -q .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QSSTV-Linux-AppImage-experimental
+          path: |
+            QSSTV*.AppImage
+            qsstv*.AppImage
+          if-no-files-found: error
