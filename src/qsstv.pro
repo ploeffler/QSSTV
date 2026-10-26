@@ -30,11 +30,13 @@ win32 {
     # Resolve the versioned include directory through pkg-config.
     CONFIG += link_pkgconfig
     PKGCONFIG += libopenjp2
+    # System V IPC message queues are Unix-only; Windows uses the Qt XML-RPC path.
     SOURCES += sound/soundwindows.cpp
     HEADERS += sound/soundwindows.h
     # Windows dependencies are provided by the selected MSYS2/MinGW toolchain.
     LIBS += -lfftw3f -lfftw3 -lhamlib
 } else {
+    SOURCES += xmlrpc/ipcmessage.cpp
     SOURCES += sound/soundpulse.cpp
     HEADERS += sound/soundpulse.h
     PKGCONFIG += libopenjp2 fftw3 libpulse libpulse-simple hamlib
@@ -166,7 +168,6 @@ SOURCES += main.cpp\
     utils/qurlinfo.cpp \
     utils/reedsolomoncoder.cpp \
     utils/rs.cpp \
-    xmlrpc/ipcmessage.cpp \
     xmlrpc/maiaFault.cpp \
     xmlrpc/maiaObject.cpp \
     xmlrpc/maiaXmlRpcClient.cpp \
