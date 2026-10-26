@@ -8,6 +8,7 @@ import os
 import sys
 from pathlib import Path
 from PyQt5 import QtCore, QtWidgets, uic
+from PyQt5.uic.Loader import DynamicUILoader
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +29,8 @@ def load_form(source):
         base = getattr(QtWidgets, extends, QtWidgets.QWidget)
         # Placeholder for QSSTV runtime widgets, preserving the Qt layout.
         custom[name] = type(name, (base,), {})
-    return uic.loadUi(str(source), customWidgets=custom)
+    loader = DynamicUILoader(customWidgets=custom)
+    return loader.loadUi(str(source))
 
 def main():
     output = Path(sys.argv[1] if len(sys.argv) > 1 else "screenshots")
