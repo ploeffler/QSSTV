@@ -24,6 +24,8 @@ INCLUDEPATH += config dispatch drmrx drmtx dsp editor logbook mainwidgets rig sc
 #QMAKE_LIBDIR += $$[QT_SYSROOT]/usr/local/lib
 
 CONFIG += link_pkgconfig
+# System V IPC on Linux, Windows stub on MinGW; both require this translation unit.
+SOURCES += xmlrpc/ipcmessage.cpp
 win32 {
     # Ensure Winsock2 precedes any transitive windows.h inclusion (e.g. via Qt).
     QMAKE_CXXFLAGS += -include winsock2.h
@@ -33,7 +35,6 @@ win32 {
     CONFIG += link_pkgconfig
     PKGCONFIG += libopenjp2
     # System V IPC message queues are Unix-only; Windows uses the Qt XML-RPC path.
-    SOURCES += xmlrpc/ipcmessage.cpp
     SOURCES += sound/soundwindows.cpp
     HEADERS += sound/soundwindows.h
     # Windows dependencies are provided by the selected MSYS2/MinGW toolchain.
