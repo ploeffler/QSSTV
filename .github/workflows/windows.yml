@@ -39,6 +39,9 @@ jobs:
         run: |
           git clone --depth 1 --branch 4.6.3 https://github.com/Hamlib/Hamlib.git hamlib-src
           cd hamlib-src
+          # Hamlib 4.6.3 precise_time.c uses assert() without including assert.h.
+          # Apply a build-local compatibility fix; do not modify QSSTV sources.
+          sed -i '1i #include <assert.h>' lib/precise_time.c
           ./bootstrap
           ./configure --prefix=/mingw64 --disable-shared --enable-static --without-cxx-binding
           make -j2
