@@ -12,7 +12,7 @@ Source: the tagged commit built by the release workflow. This is the first combi
 - English development roadmap, porting notes, packaging instructions and test checklist.
 
 ## Downloads
-Download the Windows ZIP, Linux AppImage and Linux Debian package from the **Assets** section of this GitHub Release. All three packages are built from the same source revision.
+Download the Windows ZIP, Linux AppImage, Linux Debian package and Fedora RPM from the **Assets** section of this GitHub Release. All four packages are built from the same source revision.
 
 ## Important warning
 CI confirms compilation and packaging only. Real-device testing for SSTV/HAMDRM receive/transmit, audio, CAT/PTT, dependency loading and system compatibility remains outstanding. Do not assume that this build is suitable for unattended or critical operation.
