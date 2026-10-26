@@ -61,9 +61,26 @@ jobs:
         run: |
           mkdir -p dist
           cp build-windows/release/qsstv.exe dist/ 2>/dev/null || cp build-windows/qsstv.exe dist/
-          # MSYS2 Qt5 uses windeployqt.exe (without the -qt5 suffix).
-          test -x /mingw64/bin/windeployqt.exe
-          /mingw64/bin/windeployqt.exe dist/qsstv.exe
+          # Discover Qt5 deployment tool across MSYS2 package layouts.
+          deploy_tool=""
+          for candidate in /mingw64/bin/windeployqt*.exe /mingw64/share/qt5/bin/windeployqt*.exe; do
+            if test -x "$candidate"; then
+              deploy_tool="$candidate"
+              break
+            fi
+          done
+          if test -n "$deploy_tool"; then
+            "$deploy_tool" dist/qsstv.exe
+          else
+            echo "Qt5 windeployqt unavailable; packaging executable and runtime DLLs explicitly"
+            cp /mingw64/bin/Qt5*.dll dist/
+            cp /mingw64/bin/libgcc_s_seh-1.dll /mingw64/bin/libstdc++-6.dll /mingw64/bin/libwinpthread-1.dll dist/
+            mkdir -p dist/platforms
+            cp /mingw64/share/qt5/plugins/platforms/qwindows.dll dist/platforms/ 2>/dev/null || cp /mingw64/lib/qt5/plugins/platforms/qwindows.dll dist/platforms/
+            for dll in libfftw3f-3.dll libfftw3-3.dll libopenjp2-7.dll libqwt-qt5.dll; do
+              if test -f "/mingw64/bin/$dll"; then cp "/mingw64/bin/$dll" dist/; fi
+            done
+          fi
       - uses: actions/upload-artifact@v4
         if: success()
         with:
