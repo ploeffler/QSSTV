@@ -51,6 +51,9 @@ def load_form(source):
             module_name = header.replace('/', '.').removesuffix('.h').removesuffix('.py')
             module = modules.setdefault(module_name, types.ModuleType(module_name))
             setattr(module, name, custom[name])
+    # UI compiler imports qsstv_rc for Qt resource URLs. The structural
+    # screenshot does not require embedded icons, so use an empty module.
+    modules.setdefault('qsstv_rc', types.ModuleType('qsstv_rc'))
     with patch.dict(sys.modules, modules):
         namespace = {'__name__': '_qsstv_ui_preview'}
         exec(compile(code, str(source), 'exec'), namespace)
