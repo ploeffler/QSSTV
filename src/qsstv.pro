@@ -31,13 +31,13 @@ win32 {
     CONFIG += link_pkgconfig
     PKGCONFIG += libopenjp2
     # System V IPC message queues are Unix-only; Windows uses the Qt XML-RPC path.
+    SOURCES += xmlrpc/ipcmessage.cpp
     SOURCES += sound/soundwindows.cpp
     HEADERS += sound/soundwindows.h
     # Windows dependencies are provided by the selected MSYS2/MinGW toolchain.
     # Static Hamlib requires Windows Winsock and IP Helper libraries.
     LIBS += -lfftw3f -lfftw3 -lhamlib -lws2_32 -liphlpapi
 } else {
-    SOURCES += xmlrpc/ipcmessage.cpp
     SOURCES += sound/soundpulse.cpp
     HEADERS += sound/soundpulse.h
     PKGCONFIG += libopenjp2 fftw3 libpulse libpulse-simple hamlib
