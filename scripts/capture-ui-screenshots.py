@@ -55,7 +55,7 @@ def load_form(source):
         namespace = {'__name__': '_qsstv_ui_preview'}
         exec(compile(code, str(source), 'exec'), namespace)
         form = next(value for key, value in namespace.items() if key.startswith('Ui_') and isinstance(value, type))
-        widget_class = getattr(QtWidgets, tree.findtext('./widget/class'), QtWidgets.QWidget)
+        widget_class = getattr(QtWidgets, tree.find('./widget').get('class', 'QWidget'), QtWidgets.QWidget)
         widget = widget_class()
         form().setupUi(widget)
         return widget
