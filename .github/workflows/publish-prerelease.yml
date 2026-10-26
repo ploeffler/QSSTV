@@ -173,10 +173,44 @@ jobs:
           name: QSSTV-Linux-DEB-experimental
           path: out/*.deb
           if-no-files-found: error
-  publish:
-    name: Publish prerelease with three packages
+  rpm:
     runs-on: ubuntu-22.04
-    needs: [windows, appimage, deb]
+    container: fedora:42
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Fedora build dependencies
+        run: |
+          dnf install -y gcc-c++ make git rpm-build rpmdevtools file \
+            qt5-qtbase-devel qt5-qtmultimedia-devel qt5-qtsvg-devel \
+            fftw-devel hamlib-devel alsa-lib-devel pulseaudio-libs-devel \
+            openjpeg2-devel libv4l-devel qwt-qt5-devel
+      - name: Build QSSTV on Fedora
+        run: |
+          mkdir -p build-fedora
+          cd build-fedora
+          qmake-qt5 ../src/qsstv.pro CONFIG+=release
+          make -j2
+          test -x qsstv
+      - name: Package RPM
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/rpmbuild"/{SPECS,SOURCES,RPMS,BUILD,BUILDROOT,SRPMS}
+          cp build-fedora/qsstv qsstv.desktop src/icons/qsstv.png "$HOME/rpmbuild/SOURCES/"
+          cp packaging/fedora/qsstv.spec "$HOME/rpmbuild/SPECS/"
+          rpmbuild -bb "$HOME/rpmbuild/SPECS/qsstv.spec" --define "qsstv_version ${{ inputs.version }}"
+          mkdir -p out
+          cp "$HOME"/rpmbuild/RPMS/x86_64/*.rpm out/
+          rpm -qip out/*.rpm
+          rpm -qlp out/*.rpm | grep -q /usr/bin/qsstv
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QSSTV-Fedora-RPM-experimental
+          path: out/*.rpm
+          if-no-files-found: error
+  publish:
+    name: Publish prerelease with four packages
+    runs-on: ubuntu-22.04
+    needs: [windows, appimage, deb, rpm]
     permissions:
       contents: write
     steps:
@@ -203,7 +237,8 @@ jobs:
           (cd release-assets/QSSTV-Windows-experimental && zip -qr "$GITHUB_WORKSPACE/dist-release/QSSTV-${{ inputs.version }}-Windows-x86_64.zip" .)
           find release-assets/QSSTV-Linux-AppImage-experimental -type f -name '*.AppImage' -exec cp -v {} dist-release/ \;
           find release-assets/QSSTV-Linux-DEB-experimental -type f -name '*.deb' -exec cp -v {} dist-release/ \;
-          test "$(find dist-release -maxdepth 1 -type f | wc -l)" -eq 3
+          find release-assets/QSSTV-Fedora-RPM-experimental -type f -name '*.rpm' -exec cp -v {} dist-release/ \;
+          test "$(find dist-release -maxdepth 1 -type f | wc -l)" -eq 4
           ls -lh dist-release
       - name: Publish GitHub prerelease
         env:
