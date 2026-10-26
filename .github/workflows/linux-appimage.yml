@@ -1,10 +1,13 @@
 name: Linux AppImage experimental
 on:
   push:
-    branches: ["feature/windows-port-implementation"]
+    branches: [main, "feature/windows-port-implementation"]
     paths:
       - 'src/**'
       - '.github/workflows/linux-appimage.yml'
+      - 'qsstv.desktop'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
