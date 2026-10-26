@@ -61,7 +61,7 @@ jobs:
         run: |
           mkdir -p dist
           cp build-windows/release/qsstv.exe dist/ 2>/dev/null || cp build-windows/qsstv.exe dist/
-          windeployqt dist/qsstv.exe
+          /mingw64/bin/windeployqt-qt5.exe dist/qsstv.exe
       - uses: actions/upload-artifact@v4
         if: success()
         with:
