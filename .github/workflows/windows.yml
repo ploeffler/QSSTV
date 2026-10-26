@@ -27,7 +27,6 @@ jobs:
             mingw-w64-x86_64-qt5-multimedia
             mingw-w64-x86_64-qt5-svg
             mingw-w64-x86_64-fftw
-            # Hamlib is not available as this MSYS2 package; install via a supported Windows dependency source.
             mingw-w64-x86_64-openjpeg2
             mingw-w64-x86_64-qwt-qt5
             make
