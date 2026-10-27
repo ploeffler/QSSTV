@@ -23,33 +23,63 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
+       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') &&
        github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-22.04
+    env:
+      TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
-      - name: Collect successful builds from the same commit
+      - name: Check successful builds from the same commit
+        id: builds
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          TRIGGER_EVENT: ${{ github.event_name }}
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p incoming/windows incoming/deb incoming/appimage release
           # Do not mix builds from different commits, branches or PRs.
           get_run() {
             local workflow="$1" id
-            id="$(gh run list --repo "$GH_REPO" --workflow "$workflow" --commit "$TARGET_SHA" --status success --limit 100 --json databaseId,headSha,headBranch,event,conclusion |
-              jq -r --arg sha "$TARGET_SHA" '[.[] | select(.headSha == $sha and .headBranch == "main" and (.event == "push" or .event == "workflow_dispatch") and .conclusion == "success")] | sort_by(.databaseId) | last | .databaseId // empty')"
+            if ! id="$(gh run list --repo "$GH_REPO" --workflow "$workflow" --commit "$TARGET_SHA" --status success --limit 100 --json databaseId,headSha,headBranch,event,conclusion |
+              jq -r --arg sha "$TARGET_SHA" '[.[] | select(.headSha == $sha and .headBranch == "main" and (.event == "push" or .event == "workflow_dispatch") and .conclusion == "success")] | sort_by(.databaseId) | last | .databaseId // empty')"; then
+              echo "::error::Could not query builds for $workflow" >&2
+              return 1
+            fi
             if [[ -z "$id" ]]; then
-              echo "::error::No successful main-branch build for $workflow at $TARGET_SHA"
-              exit 1
+              echo "Missing successful main-branch build for $workflow at $TARGET_SHA" >&2
+              return 0
             fi
             printf '%s' "$id"
           }
           win="$(get_run 'Windows experimental build')"
           deb="$(get_run 'Linux DEB experimental')"
           app="$(get_run 'Linux AppImage experimental')"
+          if [[ -z "$win" || -z "$deb" || -z "$app" ]]; then
+            if [[ "$TRIGGER_EVENT" == workflow_dispatch ]]; then
+              echo "::error::Required builds are missing for $TARGET_SHA. Run all three build workflows on main and wait for success, then retry."
+              exit 1
+            fi
+            echo "::notice::Release deferred until all three builds succeed for $TARGET_SHA."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "win=$win" >> "$GITHUB_OUTPUT"
+          echo "deb=$deb" >> "$GITHUB_OUTPUT"
+          echo "app=$app" >> "$GITHUB_OUTPUT"
+      - name: Collect successful builds from the same commit
+        if: steps.builds.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          win: ${{ steps.builds.outputs.win }}
+          deb: ${{ steps.builds.outputs.deb }}
+          app: ${{ steps.builds.outputs.app }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p incoming/windows incoming/deb incoming/appimage release
           gh run download "$win" --repo "$GH_REPO" --name QSSTV-Windows-experimental --dir incoming/windows
           gh run download "$deb" --repo "$GH_REPO" --name QSSTV-Linux-DEB-experimental --dir incoming/deb
           gh run download "$app" --repo "$GH_REPO" --name QSSTV-Linux-AppImage-experimental --dir incoming/appimage
@@ -74,6 +104,7 @@ jobs:
           EOF
           echo "TAG=experimental-${short}" >> "$GITHUB_ENV"
       - name: Publish unified prerelease
+        if: steps.builds.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -84,4 +115,4 @@ jobs:
             echo "Release $TAG already exists; not overwriting assets."
             exit 0
           fi
-          gh release create "$TAG" release/* --repo "$GH_REPO" --target main --title "QSSTV Experimental $TAG" --prerelease --notes-file release-notes.md
+          gh release create "$TAG" release/* --repo "$GH_REPO" --target "$TARGET_SHA" --title "QSSTV Experimental $TAG" --prerelease --notes-file release-notes.md
