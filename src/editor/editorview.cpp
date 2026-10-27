@@ -449,10 +449,11 @@ void editorView::slotGradientDialog()
   gDiag.selectGradient();
 }
 
-void editorView::save(QFile &f,bool templ)
+bool editorView::save(QFile &f,bool templ)
 {
-  scene->save(f,templ);
+  if (!scene->save(f,templ)) return false;
   modified=false;
+  return true;
 }
 
 bool editorView::open(QFile &f)
@@ -554,3 +555,21 @@ void editorView::slotDump()
   scene->dumpItems();
 }
 #endif
+
+void editorView::importMmsstv(const Mmsstv::Document &document)
+{
+  scene->importMmsstv(document);
+  canvasWidth=document.size.width();
+  canvasHeight=document.size.height();
+  canvas->setSceneRect(scene->border);
+  modified=true;
+}
+
+bool editorView::setTemplateTransparency(bool enabled,const QColor &background,const QPoint &point,QString *error)
+{
+  const bool changed=enabled!=scene->hasTemplateTransparency() ||
+      (enabled && (background!=scene->templateTransparencyBackground() || point!=scene->templateTransparencyPoint()));
+  if(!changed) {if(error)error->clear();return true;}
+  if(!scene->setTemplateTransparency(enabled,background,point,error))return false;
+  modified=true;return true;
+}

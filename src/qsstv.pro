@@ -78,8 +78,11 @@ SOURCES += main.cpp\
     dsp/filterparam.cpp \
     sound/waterfalltext.cpp \
     utils/macroexpansion.cpp \
+    utils/templatemacros.cpp \
     widgets/imageviewer.cpp \
     editor/editor.cpp \
+    editor/mmsstvtemplate.cpp \
+    editor/mmsstvimport.cpp \
     editor/editorscene.cpp \
     editor/editorview.cpp \
     editor/gradientdialog.cpp \
@@ -219,6 +222,9 @@ unix:!macx: SOURCES += sound/soundalsa.cpp \
     videocapt/videocapture.cpp
 
 HEADERS  += utils/qsstvsettings.h \
+    utils/templatemacros.h \
+    editor/mmsstvtemplate.h \
+    editor/mmsstvimport.h \
     mainwindow.h \
     config/baseconfig.h \
     config/configparams.h \

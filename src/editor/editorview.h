@@ -45,7 +45,9 @@ public:
 
   bool isModified() {return modified;}
   bool open(QFile &f);
-  void save(QFile &f,bool templ);
+  void importMmsstv(const Mmsstv::Document &document);
+  bool save(QFile &f,bool templ);
+  bool setTemplateTransparency(bool enabled,const QColor &background,const QPoint &point,QString *error);
 
   QImage *getImage() { return image;}
   void setImage(QImage *ima);
