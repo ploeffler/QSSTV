@@ -31,3 +31,7 @@
 - `src/sound`, `src/rig`: audio and radio control.
 
 All work should be reviewed through pull requests and preserve existing modes.
+
+## Upstream review (2026-10-27)
+
+See the [complete upstream review and change provenance](../docs/development/upstream-review-2026-10-27.md) for all nine open PRs, reviewed SHAs, the first five adapted fixes, validation limits, and deferred work. Implementation on a review branch does not imply release validation.
