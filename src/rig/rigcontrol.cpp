@@ -413,8 +413,8 @@ void rigControl::activatePTT(bool b)
               ioctl(serialP,TIOCMGET,&modemlines);
               if(catParams.activeDTR) modemlines &= ~TIOCM_DTR;
               if(catParams.activeRTS)modemlines &= ~TIOCM_RTS;
-              if(catParams.nactiveDTR) modemlines |= ~TIOCM_DTR;
-              if(catParams.nactiveRTS)modemlines |= ~TIOCM_RTS;
+              if(catParams.nactiveDTR) modemlines |= TIOCM_DTR;
+              if(catParams.nactiveRTS)modemlines |= TIOCM_RTS;
               ioctl(serialP,TIOCMSET,&modemlines);
             }
         }
@@ -435,8 +435,8 @@ void rigControl::activatePTT(bool b)
               ioctl(serialP,TIOCMGET,&modemlines);
               if(catParams.activeDTR) modemlines &= ~TIOCM_DTR;
               if(catParams.activeRTS) modemlines &= ~TIOCM_RTS;
-              if(catParams.nactiveDTR) modemlines |= ~TIOCM_DTR;
-              if(catParams.nactiveRTS)modemlines |= ~TIOCM_RTS;
+              if(catParams.nactiveDTR) modemlines |= TIOCM_DTR;
+              if(catParams.nactiveRTS)modemlines |= TIOCM_RTS;
               ioctl(serialP,TIOCMSET,&modemlines);
             }
         }
