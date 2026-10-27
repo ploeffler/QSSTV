@@ -18,6 +18,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#include "qsstvsettings.h"
 #include "gradientdialog.h"
 //#include "appdefs.h"
 #include <QColorDialog>
@@ -55,7 +56,7 @@ gradientDialog::~gradientDialog()
 
 void gradientDialog::readSettings()
 {
-	QSettings qSettings;
+	QsstvSettings qSettings;
 	qSettings.beginGroup ("Editor");
     gParam.color1 = qSettings.value("gradcolor1", QColor(Qt::red)).value<QColor>();
     gParam.color2 = qSettings.value("gradcolor2", QColor(Qt::green )).value<QColor>();
@@ -97,7 +98,7 @@ void gradientDialog::readSettings()
 
 void gradientDialog::writeSettings()
 {
-QSettings qSettings;
+QsstvSettings qSettings;
 	qSettings.beginGroup ("Editor" );
 	
 	qSettings.setValue ("gradcolor1", gParam.color1);

@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "soundconfig.h"
 #include "ui_soundconfig.h"
 #include "configparams.h"
@@ -73,7 +74,7 @@ soundConfig::~soundConfig()
 
 void soundConfig::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("SOUND");
   rxClock=qSettings.value("rxclock",BASESAMPLERATE).toDouble();
   txClock=qSettings.value("txclock",BASESAMPLERATE).toDouble();
@@ -95,7 +96,7 @@ void soundConfig::readSettings()
 
 void soundConfig::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup("SOUND");
   qSettings.setValue("rxclock",rxClock);

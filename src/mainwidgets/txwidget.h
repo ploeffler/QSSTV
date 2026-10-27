@@ -24,6 +24,11 @@ enum etxMode {TXUPLOAD,TXBINARY,TXNORMAL};
 
 
 class drmTransmitter;
+class QComboBox;
+class QSpinBox;
+class QCheckBox;
+class QPlainTextEdit;
+class QPushButton;
 namespace Ui {
 class txWidget;
 }
@@ -38,7 +43,7 @@ public:
   void init();
 //  void startTX(bool st, bool check=true);
   void prepareTx();
-  void prepareTxComplete(bool ok);
+  void prepareTxComplete(bool ok,quint64 ticket=0);
   void writeSettings();
   void readSettings();
   //  void repeat(QImage *im,esstvMode sm);
@@ -148,6 +153,13 @@ private:
   esstvMode txMode;
   bool notifyBusy;
   bool repeaterIdleImage;
+  QComboBox *kgstvModulation;
+  QSpinBox *kgstvQuality;
+  QCheckBox *kgstvFec;
+  QPlainTextEdit *kgstvText;
+  QPushButton *kgstvSendText,*kgstvRequest,*kgstvRepair;
+  quint64 kgstvTicket=0;
+  void kgstvAction(int action);
   float fileSize;
 
 };

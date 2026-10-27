@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "guiconfig.h"
 #include "ui_guiconfig.h"
 #include <QImageWriter>
@@ -50,7 +51,7 @@ guiConfig::~guiConfig()
 
 void guiConfig::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("GUI");
   galleryRows=qSettings.value("galleryRows",4).toInt();
   galleryColumns=qSettings.value("galleryColumns",4).toInt();
@@ -67,7 +68,7 @@ void guiConfig::readSettings()
 
 void guiConfig::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup("GUI");
   qSettings.setValue("galleryRows",galleryRows);

@@ -55,3 +55,11 @@ compile_commands.json
 documentation/api/api_html
 documentation/manual/manual_html
 
+
+# Local Python caches and portable Windows packaging outputs
+__pycache__/
+*.py[cod]
+/dist-windows/
+/out-windows/
+/portable-smoke/
+/portable-smoke.exe

@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "waterfallconfig.h"
 #include "ui_waterfallconfig.h"
 #include <QFont>
@@ -53,7 +54,7 @@ waterfallConfig::~waterfallConfig()
 
 void waterfallConfig::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("WATERFALL");
   startPicWF=qSettings.value("startPicWF","START PIC").toString();
   endPicWF=qSettings.value("endPicWF","END PIC").toString();
@@ -75,7 +76,7 @@ void waterfallConfig::readSettings()
 
 void waterfallConfig::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup("WATERFALL");
   qSettings.setValue("startPicWF",startPicWF);

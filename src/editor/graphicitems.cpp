@@ -113,6 +113,10 @@ void itemText::drawItem(QPainter *painter)
 
 
     }
+  else if(!param.im.isNull())
+    {
+      painter->setBrush(QBrush(param.im));
+    }
   else
     {
       painter->setBrush(param.fillColor);

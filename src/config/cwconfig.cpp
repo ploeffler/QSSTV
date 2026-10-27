@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "cwconfig.h"
 #include "ui_cwconfig.h"
 
@@ -39,7 +40,7 @@ cwConfig::~cwConfig()
 
 void cwConfig::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("CW");
   cwText=qSettings.value("cwtext","").toString();
   cwTone=qSettings.value("cwtone",800).toInt();
@@ -51,7 +52,7 @@ void cwConfig::readSettings()
 
 void cwConfig::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
 
   qSettings.beginGroup("CW");

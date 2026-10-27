@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *   Copyright (C) 2000-2019 by Johan Maes                                 *
  *   on4qz@telenet.be                                                      *
  *   https://www.qsl.net/o/on4qz                                           *
@@ -25,6 +25,7 @@ It also starts, stops and synchronizes the threads.
 
 */
 #include "dispatcher.h"
+#include "kgstvcontroller.h"
 #include "appglobal.h"
 #include "configparams.h"
 #include "rxwidget.h"
@@ -40,6 +41,7 @@ It also starts, stops and synchronizes the threads.
 #include "ftpfunctions.h"
 
 #include <QSettings>
+#include <QScopedValueRollback>
 #include <QMessageBox>
 
 /*! creates dispatcher instance  */
@@ -148,7 +150,8 @@ void dispatcher::customEvent( QEvent * e )
       txWidgetPtr->appendDRMNotifyText(((txDRMNotifyAppendEvent*)e)->getStr());
       break;
     case txPrepareComplete:
-      txWidgetPtr->prepareTxComplete(((txPrepareCompleteEvent *)e)->ok());
+      if(radioTransition)break;
+      txWidgetPtr->prepareTxComplete(((txPrepareCompleteEvent *)e)->ok(),((txPrepareCompleteEvent *)e)->ticket());
       break;
 
     case editorFinished:
@@ -168,6 +171,8 @@ void dispatcher::customEvent( QEvent * e )
       break;
 
     case progressTX:
+      if(radioTransition)break;
+      if(((progressTXEvent *)e)->kgstvToken() && ((progressTXEvent *)e)->kgstvToken()!=txWidgetPtr->functionsPtr()->kgstvCompletionToken())break;
       txTimeCounter=0;
       addToLog(QString("dispatcher: progress duration=%1").arg(((progressTXEvent*)e)->getInfo()),LOGDISPATCH);
       prTimerIndex=startTimer(((progressTXEvent*)e)->getInfo()*10); // time in seconds -> times 1000 for msec,divide by 100 for progress
@@ -178,6 +183,8 @@ void dispatcher::customEvent( QEvent * e )
       break;
 
     case endImageTX:
+      if(radioTransition)break;
+      if(((endImageTXEvent *)e)->kgstvToken() && ((endImageTXEvent *)e)->kgstvToken()!=txWidgetPtr->functionsPtr()->kgstvCompletionToken())break;
       //addToLog("dispatcher: endTXImage",LOGDISPATCH);
       while(soundIOPtr->isPlaying())
         {
@@ -294,6 +301,8 @@ void dispatcher::customEvent( QEvent * e )
 
 void dispatcher::idleAll()
 {
+  if(radioTransition)return;
+  QScopedValueRollback<bool> transition(radioTransition,true);
   if(prTimerIndex>=0)
     {
       killTimer(prTimerIndex);
@@ -308,6 +317,7 @@ void dispatcher::idleAll()
 
 void dispatcher::startRX()
 {
+  if(radioTransition)return;
   idleAll();
   soundIOPtr->startCapture();
   rxWidgetPtr->functionsPtr()->startRX();
@@ -315,9 +325,18 @@ void dispatcher::startRX()
 
 void dispatcher::startTX(txFunctions::etxState state)
 {
+  if(radioTransition)return;
   idleAll();
+  if(state==txFunctions::TXSENDKGSTV && (transmissionModeIndex!=TRXKGSTV || !kgstvControllerPtr || !kgstvControllerPtr->prepared())) {
+    txWidgetPtr->slotStop();return;
+  }
+  if(!soundIOPtr->startPlayback()) {
+    rigControllerPtr->activatePTT(false);
+    if(state==txFunctions::TXSENDKGSTV && kgstvControllerPtr)kgstvControllerPtr->completeTransmit(false);
+    txWidgetPtr->slotStop();
+    return;
+  }
   rigControllerPtr->activatePTT(true);
-  soundIOPtr->startPlayback();
   txWidgetPtr->functionsPtr()->startTX(state);
 }
 

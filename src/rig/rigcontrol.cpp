@@ -95,7 +95,8 @@ bool rigControl::init()
     }
   if(!catParams.serialPort.isEmpty())
     {
-      strncpy(my_rig->state.rigport.pathname,(const char *)catParams.serialPort.toLatin1().data(),HAMLIB_FILPATHLEN-1);
+      rig_set_conf(my_rig, rig_token_lookup(my_rig, "rig_pathname"),
+                   catParams.serialPort.toLatin1().constData());
     }
   my_rig->state.rigport.parm.serial.rate = catParams.baudrate;
   my_rig->state.rigport.parm.serial.data_bits=catParams.databits;
@@ -154,9 +155,7 @@ bool rigControl::getFrequency(double &frequency)
   retcode = rig_get_freq(my_rig, RIG_VFO_CURR, &frequency);
   for(int i=0;i<RIGCMDTRIES;i++)
     {
-      qDebug() << "getFreq";
       retcode = rig_get_freq(my_rig, RIG_VFO_CURR, &frequency);
-      qDebug() << "got Freq";
       if (retcode==RIG_OK)
         {
           return true;
@@ -413,8 +412,8 @@ void rigControl::activatePTT(bool b)
               ioctl(serialP,TIOCMGET,&modemlines);
               if(catParams.activeDTR) modemlines &= ~TIOCM_DTR;
               if(catParams.activeRTS)modemlines &= ~TIOCM_RTS;
-              if(catParams.nactiveDTR) modemlines |= ~TIOCM_DTR;
-              if(catParams.nactiveRTS)modemlines |= ~TIOCM_RTS;
+              if(catParams.nactiveDTR) modemlines |= TIOCM_DTR;
+              if(catParams.nactiveRTS)modemlines |= TIOCM_RTS;
               ioctl(serialP,TIOCMSET,&modemlines);
             }
         }
@@ -435,8 +434,8 @@ void rigControl::activatePTT(bool b)
               ioctl(serialP,TIOCMGET,&modemlines);
               if(catParams.activeDTR) modemlines &= ~TIOCM_DTR;
               if(catParams.activeRTS) modemlines &= ~TIOCM_RTS;
-              if(catParams.nactiveDTR) modemlines |= ~TIOCM_DTR;
-              if(catParams.nactiveRTS)modemlines |= ~TIOCM_RTS;
+              if(catParams.nactiveDTR) modemlines |= TIOCM_DTR;
+              if(catParams.nactiveRTS)modemlines |= TIOCM_RTS;
               ioctl(serialP,TIOCMSET,&modemlines);
             }
         }

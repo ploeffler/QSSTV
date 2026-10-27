@@ -1,7 +1,7 @@
 name: Linux DEB experimental
 on:
   push:
-    branches: [main, "feature/windows-port-implementation"]
+    branches: [main, "feature/**"]
     # Every main commit needs artifacts for the same-commit unified release.
   pull_request:
     branches: [main]
@@ -18,6 +18,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config qtbase5-dev qt5-qmake qtbase5-dev-tools libqt5svg5-dev qtmultimedia5-dev libqt5multimedia5-plugins libfftw3-dev libhamlib-dev libasound2-dev libpulse-dev libopenjp2-7-dev libv4l-dev libqwt-qt5-dev
           sudo apt-get install -y dpkg-dev
+      - name: Test serial PTT bit masks
+        run: |
+          python3 tests/test_serial_ptt.py
+          python3 tests/test_kgstv_radio_paths.py
       - name: Build QSSTV
         run: |
           mkdir -p build-linux
@@ -25,6 +29,16 @@ jobs:
           qmake ../src/qsstv.pro CONFIG+=release
           make -j2
           test -x qsstv
+      - name: Test KG-STV widgets without radio devices
+        run: python3 tests/run_kgstv_ui_test.py build-linux
+      - name: Test experimental KG-STV components and offline WAV workflow
+        run: |
+          mkdir -p build-kgstv-offline
+          cd build-kgstv-offline
+          qmake ../tools/kgstv-offline/kgstv-offline.pro CONFIG+=release
+          make -j2
+          cd ..
+          python3 tests/run_kgstv_tests.py build-kgstv-offline
       - name: Create Debian package
         run: |
           version="0.0.0+git$(git rev-parse --short=8 HEAD)"

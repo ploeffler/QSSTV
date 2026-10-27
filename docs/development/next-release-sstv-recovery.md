@@ -44,7 +44,7 @@ This register records both the **source PR** and the **local integration PR** fo
 | --- | --- | --- | --- | --- |
 | RX synchronization dropout tolerance | [ON4QZ/QSSTV#80](https://github.com/ON4QZ/QSSTV/pull/80) | Not created yet | Proposed; not implemented | Proposed edits to `src/sstv/syncprocessor.cpp`; test independently |
 | VIS/FSK retrace threshold | [ON4QZ/QSSTV#80](https://github.com/ON4QZ/QSSTV/pull/80) | Not created yet | Proposed; not implemented | Proposed 290 ms → 350 ms in `src/sstv/visfskid.h`; test independently |
-| Preparation, scope and validation plan | [ON4QZ/QSSTV#80](https://github.com/ON4QZ/QSSTV/pull/80) | [ploeffler/QSSTV#10](https://github.com/ploeffler/QSSTV/pull/10) | Draft documentation PR; not merged | Documents candidates and release gates; does not change decoder behavior |
+| Preparation, scope and validation plan | [ON4QZ/QSSTV#80](https://github.com/ON4QZ/QSSTV/pull/80) | [ploeffler/QSSTV#10](https://github.com/ploeffler/QSSTV/pull/10) | Documentation PR merged; implementation pending | Documents candidates and release gates; does not change decoder behavior |
 | UI redesign and QSSTVMania rebranding | [ON4QZ/QSSTV#80](https://github.com/ON4QZ/QSSTV/pull/80) | None | Explicitly rejected | No styling, SVG icons, layouts, splash screen or rebranding |
 
 ### Recording subsequent implementation work

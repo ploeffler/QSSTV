@@ -19,6 +19,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "imageviewer.h"
+#include "templatemacros.h"
 #include "appglobal.h"
 #include "logging.h"
 #include "configparams.h"
@@ -53,6 +54,7 @@ imageViewer::imageViewer(QWidget *parent): QLabel(parent)
 {
   addToLog("image creation",LOGIMAG);
   validImage=false;
+  compressSize=5000;
   setFrameStyle(QFrame::Sunken | QFrame::Panel);
   QBrush b;
   QPalette palette;
@@ -907,7 +909,7 @@ int imageViewer::applyTemplate()
   jp2IO jp2;
   QImage overlayedImage;
   int tWidth=targetWidth,tHeight=targetHeight;
-  int compRatio;
+  int compRatio=1;
   int byteCount;
 
   if(sourceImage.isNull()) return 0;
@@ -924,9 +926,9 @@ int imageViewer::applyTemplate()
       useCompression=false;
     }
 #if (QT_VERSION < QT_VERSION_CHECK(5,10,0))
-  compRatio=((sourceImage.convertToFormat(QImage::Format_RGB32).byteCount()*3)/4)/compressSize; // first estimate without template
+  if(useCompression)compRatio=((sourceImage.convertToFormat(QImage::Format_RGB32).byteCount()*3)/4)/qMax(1,compressSize); // first estimate without template
 #else
-  compRatio=((sourceImage.convertToFormat(QImage::Format_RGB32).sizeInBytes()*3)/4)/compressSize; // first estimate without template
+  if(useCompression)compRatio=((sourceImage.convertToFormat(QImage::Format_RGB32).sizeInBytes()*3)/4)/qMax(1,compressSize); // first estimate without template
 #endif
   if (tWidth==0 && tHeight==0 && useCompression && (sourceImage.width()>1000 || sourceImage.height()>1000))
     {
@@ -994,11 +996,9 @@ int imageViewer::applyTemplate()
       if((!fi.fileName().isEmpty())  && (useTemplate))
         {
           tscene.load(fi);
-          tscene.addConversion('c',toCall,true);
-          tscene.addConversion('r',rsv);
+          configureTemplateContext(tscene.mexp,toCall,QDateTime::currentDateTime());
+          addTemplateReportConversions(tscene.mexp,rsv);
           tscene.addConversion('o',toOperator);
-          tscene.addConversion('t',QDateTime::currentDateTime().toUTC().toString("hh:mm"));
-          tscene.addConversion('d',QDateTime::currentDateTime().toUTC().toString("yyyy/MM/dd"));
           tscene.addConversion('m',myCallsign);
           tscene.addConversion('q',myQth);
           tscene.addConversion('l',myLocator);

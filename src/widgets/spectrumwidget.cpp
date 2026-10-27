@@ -1,3 +1,4 @@
+#include "qsstvsettings.h"
 #include "spectrumwidget.h"
 #include "appglobal.h"
 #include "ui_spectrumwidget.h"
@@ -39,7 +40,7 @@ void spectrumWidget::realFFT(double *iBuffer)
 
 void spectrumWidget::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("SPECTRUM");
   maxdb=qSettings.value("maxdb",-25).toInt();
   range=qSettings.value("range",35).toInt();
@@ -51,7 +52,7 @@ void spectrumWidget::readSettings()
 
 void spectrumWidget::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup("SPECTRUM");
   qSettings.setValue( "maxdb",maxdb);

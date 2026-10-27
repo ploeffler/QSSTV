@@ -20,6 +20,8 @@
 ***************************************************************************/
 
 #include <QApplication>
+#include <QMessageBox>
+#include "qsstvsettings.h"
 
 #include <QtGui>
 #include "appglobal.h"
@@ -41,7 +43,13 @@ int main( int argc, char ** argv )
 
   QCoreApplication::setOrganizationName(ORGANIZATION);
   QCoreApplication::setApplicationName(APPLICATION);
+  QCoreApplication::setApplicationVersion(MAJORVERSION+MINORVERSION);
   QApplication app( argc, argv );
+  QString settingsError;
+  if (!initializeQsstvSettings(&settingsError)) {
+    QMessageBox::critical(nullptr, QObject::tr("QSSTV configuration"), settingsError);
+    return 1;
+  }
   QPixmap pixmap(":/icons/qsstvsplash.png");
   QSplashScreen splash(pixmap,Qt::WindowStaysOnTopHint);
 

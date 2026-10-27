@@ -88,10 +88,25 @@
      </item>
      <item>
       <property name="text">
+       <string>%C - their call in lowercase</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
        <string>%r - RSV (max 595)</string>
       </property>
       <property name="toolTip">
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;RSV (radio-strength-video best is 595) You can also input free text as is sometimes required for contest (e.g. 595#007 or Good Copy)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>%R - first three characters of RSV</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>%N - RSV suffix after three characters</string>
       </property>
      </item>
      <item>
@@ -145,7 +160,7 @@
      </item>
      <item>
       <property name="text">
-       <string>%t - time</string>
+       <string>%t - UTC time (hh:mm)</string>
       </property>
       <property name="toolTip">
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;time in hours:minutes format&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -153,7 +168,7 @@
      </item>
      <item>
       <property name="text">
-       <string>%d - date</string>
+       <string>%d - UTC date (yyyy/MM/dd)</string>
       </property>
       <property name="toolTip">
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;date in year/month/day format&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -170,6 +185,26 @@
       </property>
       <property name="toolTip">
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;SNR - only to be used for DRM in the WF Text&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>%T - UTC time (hhmm)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>%D - local date (yyyy/MM/dd)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>%U - local time (hh:mm)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>%u - local time (hhmm)</string>
       </property>
      </item>
     </widget>

@@ -342,6 +342,8 @@ bool sourceDecoder::addHeaderSegment()
 
   while(currentDataPacket.ba.count())
     {
+      // advance() can invalidate the previous QByteArray data pointer.
+      dataPtr=(unsigned char *)currentDataPacket.ba.data();
       PLI=dataPtr[0]>>6;
       paramID=dataPtr[0]&0x3F;
       switch (PLI)

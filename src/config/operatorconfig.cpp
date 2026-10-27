@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "operatorconfig.h"
 #include "ui_operatorconfig.h"
 
@@ -47,7 +48,7 @@ operatorConfig::~operatorConfig()
 
 void operatorConfig::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("PERSONAL");
   myCallsign=qSettings.value("callsign",QString("NOCALL")).toString();
   myQth=qSettings.value("qth",QString("NOWHERE")).toString();
@@ -62,7 +63,7 @@ void operatorConfig::readSettings()
 
 void operatorConfig::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup("PERSONAL");
   qSettings.setValue("callsign",myCallsign);

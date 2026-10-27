@@ -17,7 +17,9 @@ class dispatcher;
 class fileWatcher;
 class ftpThread;
 
-enum etransmissionMode {TRXSSTV,TRXDRM,TRXNOMODE};
+enum etransmissionMode {TRXSSTV=0,TRXDRM=1,TRXKGSTV=2,TRXNOMODE=3};
+namespace Kgstv {class Controller;}
+extern Kgstv::Controller *kgstvControllerPtr;
 
 extern const QString MAJORVERSION;
 extern const QString CONFIGVERSION;
