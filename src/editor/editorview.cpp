@@ -19,6 +19,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "editorview.h"
 #include "appglobal.h"
 #include "dirdialog.h"
@@ -157,7 +158,7 @@ editorView::~editorView()
 
 void editorView::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
 
   qSettings.beginGroup ("Editor");
   canvasWidth=qSettings.value("canvasWidth", 800 ).toInt();
@@ -181,7 +182,7 @@ void editorView::readSettings()
 void editorView::writeSettings()
 {
 
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup ("Editor" );
   qSettings.setValue ("canvasWidth",canvasWidth);

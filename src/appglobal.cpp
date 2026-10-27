@@ -1,3 +1,4 @@
+#include "qsstvsettings.h"
 #include "appglobal.h"
 #include "logging.h"
 #include "soundbase.h"
@@ -5,9 +6,9 @@
 #include <QCursor>
 
 
-const QString MAJORVERSION  = "9.5";
+const QString MAJORVERSION  = "9.6";
 const QString CONFIGVERSION = "9.0";
-const QString MINORVERSION  = ".11";
+const QString MINORVERSION  = ".0";
 const QString LOGVERSION = ("qsstv."+MAJORVERSION+MINORVERSION+".log");
 const QString ORGANIZATION = "ON4QZ";
 const QString APPLICATION  = ("qsstv_" +CONFIGVERSION);
@@ -73,7 +74,7 @@ void globalInit()
 {
   logFilePtr=new logFile();
   logFilePtr->open(LOGVERSION);
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("MAIN");
   logFilePtr->readSettings();
   greenPXMPtr=new QPixmap(16,16);

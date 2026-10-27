@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "hybridconfig.h"
 #include "ui_hybridconfig.h"
 #include "ftpfunctions.h"
@@ -54,7 +55,7 @@ hybridConfig::~hybridConfig()
 
 void hybridConfig::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("HYBRID");
   enableHybridRx=qSettings.value("enableHybridRx",true).toBool();
   hybridFtpPort=qSettings.value("hybridFtpPort",21).toInt();
@@ -74,7 +75,7 @@ void hybridConfig::readSettings()
 
 void hybridConfig::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup("HYBRID");
   qSettings.setValue("enableHybridRx",enableHybridRx);

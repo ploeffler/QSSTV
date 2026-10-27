@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "frequencyselectwidget.h"
 #include "ui_frequencyselectwidget.h"
 
@@ -57,7 +58,7 @@ frequencySelectWidget::~frequencySelectWidget()
 void frequencySelectWidget::readSettings()
 {
   int i;
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("FREQSELECT");
   freqList=qSettings.value("frequencyList",QStringList()).toStringList();
   modeList=qSettings.value("modeList",QStringList()).toStringList();
@@ -88,7 +89,7 @@ void frequencySelectWidget::readSettings()
 
 void frequencySelectWidget::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup("FREQSELECT");
   qSettings.setValue("frequencyList",freqList);

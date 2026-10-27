@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "mainwindow.h"
 #include "appglobal.h"
 #include "logging.h"
@@ -275,7 +276,7 @@ void mainWindow::readSettings()
 {
 
 
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("MAIN");
   int windowWidth = qSettings.value("windowWidth", 460 ).toInt();
   int windowHeight = qSettings.value("windowHeight", 530 ).toInt();
@@ -294,7 +295,7 @@ void mainWindow::readSettings()
 
 void mainWindow::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("MAIN");
   qSettings.setValue( "windowWidth", width() );
   qSettings.setValue( "windowHeight", height() );

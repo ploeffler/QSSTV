@@ -59,6 +59,7 @@ SOURCES += main.cpp\
     config/soundconfig.cpp \
     utils/dirdialog.cpp \
     utils/logging.cpp \
+    utils/qsstvsettings.cpp \
     utils/loggingparams.cpp \
     appglobal.cpp \
     utils/supportfunctions.cpp \
@@ -217,7 +218,8 @@ unix:!macx: SOURCES += sound/soundalsa.cpp \
     videocapt/v4l2control.cpp \
     videocapt/videocapture.cpp
 
-HEADERS  += mainwindow.h \
+HEADERS  += utils/qsstvsettings.h \
+    mainwindow.h \
     config/baseconfig.h \
     config/configparams.h \
     config/soundconfig.h \

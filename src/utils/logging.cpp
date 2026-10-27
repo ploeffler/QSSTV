@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "logging.h"
 
 #include <QDebug>
@@ -299,7 +300,7 @@ void logFile::maskSelect(QWidget *wPtr)
 void logFile::readSettings()
 {
   QBitArray ba;
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup ("logging");
   maskBA=qSettings.value("maskBA",QBitArray(NUMDEBUGLEVELS,false)).toBitArray();
   if(maskBA.size()<NUMDEBUGLEVELS)
@@ -315,7 +316,7 @@ void logFile::readSettings()
 
 void logFile::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup ("logging");
   qSettings.setValue ( "maskBA", maskBA);
   qSettings.setValue("outputDebug",outputDebug);

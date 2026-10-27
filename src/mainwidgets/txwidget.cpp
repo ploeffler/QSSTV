@@ -1,3 +1,4 @@
+#include "qsstvsettings.h"
 #include "txwidget.h"
 #include "appglobal.h"
 #include "drmparams.h"
@@ -152,7 +153,7 @@ void txWidget::init()
 
 void txWidget::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("TX");
   sstvModeIndexTx=((esstvMode)qSettings.value("sstvModeIndexTx",0).toInt());
   if((sstvModeIndexTx<M1) || (sstvModeIndexTx>=NOTVALID))
@@ -179,7 +180,7 @@ void txWidget::readSettings()
 
 void txWidget::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   slotGetParams();
   qSettings.beginGroup("TX");
   qSettings.setValue( "sstvModeIndexTx", sstvModeIndexTx);

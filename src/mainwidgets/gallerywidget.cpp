@@ -1,3 +1,4 @@
+#include "qsstvsettings.h"
 #include "gallerywidget.h"
 #include "ui_gallerywidget.h"
 #include "configparams.h"
@@ -98,7 +99,7 @@ void galleryWidget::changedMatrix(imageViewer::thumbType itype)
 
 void galleryWidget::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup ("Gallery");
 
   splashStr+=QString( "Loading RX images" ).rightJustified(25,' ')+"\n";
@@ -124,7 +125,7 @@ void galleryWidget::readSettings()
 */
 void galleryWidget::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup ( "Gallery" );
   qSettings.endGroup();
 }

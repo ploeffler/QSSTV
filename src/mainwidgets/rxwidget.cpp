@@ -1,3 +1,4 @@
+#include "qsstvsettings.h"
 #include "rxwidget.h"
 #include "appglobal.h"
 #include "dispatcher.h"
@@ -106,7 +107,7 @@ void rxWidget::init()
 
 void rxWidget::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("RX");
   autoSlantAdjust=qSettings.value("autoSlantAdjust",false).toBool();
   autoSave=qSettings.value("autoSave",true).toBool();
@@ -121,7 +122,7 @@ void rxWidget::readSettings()
 
 void rxWidget::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("RX");
   getParams();
   qSettings.setValue("autoSlantAdjust",autoSlantAdjust);

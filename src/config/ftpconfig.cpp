@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "ftpconfig.h"
 #include "appglobal.h"
 #include "ui_ftpconfig.h"
@@ -59,7 +60,7 @@ ftpConfig::~ftpConfig()
 
 void ftpConfig::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("FTPCONFIG");
   enableFTP=qSettings.value("enableFTP",false).toBool();
   ftpPort=qSettings.value("ftpPort",21).toInt();
@@ -79,7 +80,7 @@ void ftpConfig::readSettings()
 
 void ftpConfig::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup("FTPCONFIG");
   qSettings.setValue("enableFTP",enableFTP);

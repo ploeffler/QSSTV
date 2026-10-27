@@ -18,6 +18,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#include "qsstvsettings.h"
 #include "editor.h"
 
 #include <QtGui>
@@ -63,7 +64,7 @@ editor::~editor()
 
 void editor::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup ("Editor" );
   int windowWidth = qSettings.value( "windowWidth", 640 ).toInt();
   int windowHeight = qSettings.value( "windowHeight", 480 ).toInt();
@@ -79,7 +80,7 @@ void editor::readSettings()
 */
 void editor::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup ("Editor" );
   qSettings.setValue ( "windowWidth", width() );
   qSettings.setValue ( "windowHeight", height() );
