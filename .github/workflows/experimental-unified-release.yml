@@ -83,11 +83,12 @@ jobs:
           gh run download "$win" --repo "$GH_REPO" --name QSSTV-Windows-experimental --dir incoming/windows
           gh run download "$deb" --repo "$GH_REPO" --name QSSTV-Linux-DEB-experimental --dir incoming/deb
           gh run download "$app" --repo "$GH_REPO" --name QSSTV-Linux-AppImage-experimental --dir incoming/appimage
-          test -f incoming/windows/qsstv.exe
+          mapfile -t windows_exes < <(find incoming/windows -maxdepth 1 -type f -name '*-portable.exe')
+          test "${#windows_exes[@]}" -eq 1
           test -n "$(find incoming/deb -type f -name '*.deb' -print -quit)"
           test -n "$(find incoming/appimage -type f -name '*.AppImage' -print -quit)"
           short="${TARGET_SHA:0:8}"
-          (cd incoming/windows && zip -qr "../../release/QSSTV-Windows-x86_64-${short}.zip" .)
+          cp "${windows_exes[0]}" "release/QSSTV-Windows-x86_64-${short}-portable.exe"
           debfile="$(find incoming/deb -type f -name '*.deb' -print -quit)"
           appfile="$(find incoming/appimage -type f -name '*.AppImage' -print -quit)"
           cp "$debfile" "release/QSSTV-Linux-amd64-${short}.deb"
@@ -96,9 +97,9 @@ jobs:
           cat > release-notes.md <<EOF
           Experimental QSSTV builds from commit ${TARGET_SHA} on main.
 
-          Included: Windows x86_64 ZIP, Linux amd64 DEB, Linux x86_64 AppImage, and SHA-256 checksums.
+          Included: Windows x86_64 portable EXE, Linux amd64 DEB, Linux x86_64 AppImage, and SHA-256 checksums.
 
-          These are experimental, not stable releases. Extract the entire Windows ZIP before running qsstv.exe. Hardware and audio behavior require manual testing.
+          These are experimental, not stable releases. The Windows EXE starts without installation and extracts its runtime temporarily. Hardware and audio behavior require manual testing.
 
           Source workflows: Windows experimental build #${win}; Linux DEB experimental #${deb}; Linux AppImage experimental #${app}.
           EOF

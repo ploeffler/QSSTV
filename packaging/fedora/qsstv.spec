@@ -1,5 +1,5 @@
 Name:           qsstv
-Version:        %{?qsstv_version}%{!?qsstv_version:9.5.8}
+Version:        %{?qsstv_version}%{!?qsstv_version:9.6.0}
 Release:        1%{?dist}
 Summary:        Amateur radio SSTV and digital image application
 License:        GPL-3.0-or-later
@@ -26,5 +26,8 @@ install -Dm644 %{_sourcedir}/qsstv.png %{buildroot}%{_datadir}/icons/hicolor/128
 %{_datadir}/icons/hicolor/128x128/apps/qsstv.png
 
 %changelog
+* Tue Oct 27 2026 QSSTV contributors <noreply@github.com> - 9.6.0-1
+- Integrate MMSSTV single-template and batch import
+
 * Mon Oct 26 2026 QSSTV contributors <noreply@github.com> - 9.5.8-1
 - Experimental Fedora RPM package

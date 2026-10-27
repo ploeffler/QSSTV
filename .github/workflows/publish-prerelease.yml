@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. 9.5.1)'
+        description: 'Release version (e.g. 9.6.0)'
         required: true
-        default: '9.5.8'
+        default: '9.6.0'
         type: string
 
 permissions:
@@ -29,6 +29,9 @@ jobs:
             mingw-w64-x86_64-qt5-base
             mingw-w64-x86_64-qt5-multimedia
             mingw-w64-x86_64-qt5-svg
+            mingw-w64-x86_64-qt5-tools
+            mingw-w64-x86_64-7zip
+            python
             mingw-w64-x86_64-fftw
             mingw-w64-x86_64-openjpeg2
             mingw-w64-x86_64-qwt-qt5
@@ -59,36 +62,23 @@ jobs:
           /mingw64/bin/qmake-qt5.exe ../src/qsstv.pro CONFIG+=release
           mingw32-make -j2
           test -f release/qsstv.exe || test -f qsstv.exe
-      - name: Collect executable
-        if: success()
+      - name: Build single portable Windows EXE
+        run: bash scripts/package-windows.sh
+      - name: Build device-free portable smoke fixture
         run: |
-          mkdir -p dist
-          cp build-windows/release/qsstv.exe dist/ 2>/dev/null || cp build-windows/qsstv.exe dist/
-          # Discover Qt5 deployment tool across MSYS2 package layouts.
-          deploy_tool=""
-          for candidate in /mingw64/bin/windeployqt*.exe /mingw64/share/qt5/bin/windeployqt*.exe; do
-            if test -x "$candidate"; then
-              deploy_tool="$candidate"
-              break
-            fi
-          done
-          if test -n "$deploy_tool"; then
-            "$deploy_tool" dist/qsstv.exe
-          else
-            echo "Qt5 windeployqt unavailable; packaging executable and runtime DLLs explicitly"
-            cp /mingw64/bin/Qt5*.dll dist/
-            cp /mingw64/bin/libgcc_s_seh-1.dll /mingw64/bin/libstdc++-6.dll /mingw64/bin/libwinpthread-1.dll dist/
-            mkdir -p dist/platforms
-            cp /mingw64/share/qt5/plugins/platforms/qwindows.dll dist/platforms/ 2>/dev/null || cp /mingw64/lib/qt5/plugins/platforms/qwindows.dll dist/platforms/
-            for dll in libfftw3f-3.dll libfftw3-3.dll libopenjp2-7.dll libqwt-qt5.dll; do
-              if test -f "/mingw64/bin/$dll"; then cp "/mingw64/bin/$dll" dist/; fi
-            done
-          fi
+          mkdir portable-smoke
+          cp dist-windows/portable-launcher.exe portable-smoke/
+          g++ -std=c++11 -O2 -municode -static -static-libgcc -static-libstdc++ tests/windows-portable-smoke.cpp -o portable-smoke/qsstv.exe
+          python scripts/package-windows-portable.py portable-smoke portable-smoke.exe
+      - name: Test portable launcher without MSYS2 runtime or radio devices
+        shell: pwsh
+        run: ./tests/test_windows_portable.ps1
       - uses: actions/upload-artifact@v4
         if: success()
         with:
           name: QSSTV-Windows-experimental
-          path: dist/
+          path: out-windows/*-portable.exe
+          if-no-files-found: error
   appimage:
     runs-on: ubuntu-22.04
     steps:
@@ -221,7 +211,7 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$GITHUB_REF" == "refs/heads/main" ]] || { echo "Run this workflow from main"; exit 1; }
-          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Use a numeric version such as 9.5.1"; exit 1; }
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Use a numeric version such as 9.6.0"; exit 1; }
           echo "TAG=v$VERSION" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v4
         with:
@@ -233,8 +223,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist-release
-          test -f release-assets/QSSTV-Windows-experimental/qsstv.exe
-          (cd release-assets/QSSTV-Windows-experimental && zip -qr "$GITHUB_WORKSPACE/dist-release/QSSTV-${{ inputs.version }}-Windows-x86_64.zip" .)
+          mapfile -t windows_exes < <(find release-assets/QSSTV-Windows-experimental -maxdepth 1 -type f -name '*-portable.exe')
+          test "${#windows_exes[@]}" -eq 1
+          cp "${windows_exes[0]}" "dist-release/QSSTV-${{ inputs.version }}-Windows-x86_64-portable.exe"
           find release-assets/QSSTV-Linux-AppImage-experimental -type f -name '*.AppImage' -exec cp -v {} dist-release/ \;
           find release-assets/QSSTV-Linux-DEB-experimental -type f -name '*.deb' -exec cp -v {} dist-release/ \;
           find release-assets/QSSTV-Fedora-RPM-experimental -type f -name '*.rpm' -exec cp -v {} dist-release/ \;
@@ -252,5 +243,5 @@ jobs:
           gh release create "$TAG" dist-release/* \
             --target "$GITHUB_SHA" \
             --title "QSSTV ${{ inputs.version }} - Experimental" \
-            --notes-file documentation/RELEASE_NOTES_EXPERIMENTAL.md \
+            --notes-file documentation/RELEASE_NOTES_9.6.md \
             --prerelease
