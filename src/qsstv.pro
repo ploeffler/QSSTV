@@ -20,7 +20,7 @@ QMAKE_CXXFLAGS_DEBUG += -O0 -Wno-implicit-fallthrough -Wno-psabi
 QMAKE_CXXFLAGS_RELEASE-= -O2
 QMAKE_CXXFLAGS_RELEASE += -O3 -Wno-implicit-fallthrough -Wno-psabi
 
-INCLUDEPATH += config dispatch drmrx drmtx dsp editor logbook mainwidgets rig scope sound sstv utils widgets xmlrpc videocapt
+INCLUDEPATH += kgstv config dispatch drmrx drmtx dsp editor logbook mainwidgets rig scope sound sstv utils widgets xmlrpc videocapt
 #QMAKE_LIBDIR += $$[QT_SYSROOT]/usr/local/lib
 
 CONFIG += link_pkgconfig
@@ -83,6 +83,11 @@ SOURCES += main.cpp\
     editor/editor.cpp \
     editor/mmsstvtemplate.cpp \
     editor/mmsstvimport.cpp \
+    kgstv/kgstvprotocol.cpp \
+    kgstv/kgstvcontroller.cpp \
+    kgstv/kgstvaudio.cpp \
+    kgstv/kgstvimage.cpp \
+    kgstv/kgstvtransfer.cpp \
     editor/editorscene.cpp \
     editor/editorview.cpp \
     editor/gradientdialog.cpp \
@@ -221,10 +226,16 @@ unix:!macx: SOURCES += sound/soundalsa.cpp \
     videocapt/v4l2control.cpp \
     videocapt/videocapture.cpp
 
-HEADERS  += utils/qsstvsettings.h \
-    utils/templatemacros.h \
+HEADERS  += utils/templatemacros.h \
     editor/mmsstvtemplate.h \
     editor/mmsstvimport.h \
+    kgstv/kgstvprotocol.h \
+    kgstv/kgstvcontroller.h \
+    kgstv/kgstvaudio.h \
+    kgstv/kgstvimage.h \
+    kgstv/kgstvtables.h \
+    kgstv/kgstvtransfer.h \
+    utils/qsstvsettings.h \
     mainwindow.h \
     config/baseconfig.h \
     config/configparams.h \

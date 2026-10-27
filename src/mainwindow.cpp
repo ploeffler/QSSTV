@@ -20,6 +20,7 @@
 ***************************************************************************/
 
 #include "qsstvsettings.h"
+#include "kgstvcontroller.h"
 #include "mainwindow.h"
 #include "appglobal.h"
 #include "logging.h"
@@ -287,7 +288,8 @@ void mainWindow::readSettings()
     {
       move( windowX, windowY );
     }
-  transmissionModeIndex=static_cast<etransmissionMode>(qSettings.value("transmissionModeIndex",0).toInt());
+  const int storedMode=qSettings.value("transmissionModeIndex",0).toInt();
+  transmissionModeIndex=storedMode>=TRXSSTV && storedMode<TRXNOMODE?static_cast<etransmissionMode>(storedMode):TRXSSTV;
   qSettings.endGroup();
   ui->spectrumFrame->readSettings();
   //  configDialogPtr->readSettings();
@@ -441,9 +443,10 @@ void mainWindow::setSSTVDRMPushButton(bool inDRM)
 {
   int i;
   QString modeStr;
-  bsrPushButton->setEnabled(inDRM);
+  bsrPushButton->setEnabled(inDRM || transmissionModeIndex==TRXKGSTV);
   freqComboBox->clear();
-  if(inDRM) modeStr="DRM";
+  if(transmissionModeIndex==TRXKGSTV) modeStr="KG-STV";
+  else if(inDRM) modeStr="DRM";
   else modeStr="SSTV";
   modModeList.clear();
   modPassBandList.clear();
@@ -471,6 +474,9 @@ void mainWindow::slotCalibrate()
 
 void mainWindow::slotModeChange(int rxtxMode)
 {
+  if(rxtxMode<TRXSSTV || rxtxMode>=TRXNOMODE || rxtxMode==transmissionModeIndex)return;
+  dispatcherPtr->idleAll(); // Stop and release PTT before changing the mode identity.
+  if(kgstvControllerPtr){kgstvControllerPtr->leaveMode();if(rxtxMode==TRXKGSTV)kgstvControllerPtr->clearReceive();}
   txWidgetPtr->changeTransmissionMode(rxtxMode);
   rxWidgetPtr->changeTransmissionMode(rxtxMode);
   lastReceivedCall.clear();

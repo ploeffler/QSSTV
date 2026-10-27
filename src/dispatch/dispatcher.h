@@ -53,6 +53,7 @@ private slots:
   void slotRenameListing(bool err);
 
 private:
+  bool radioTransition=false;
   void saveRxSSTVImage(esstvMode mode);
   bool inList(QList <QUrlInfo> lst,QString fn);
   void timerEvent(QTimerEvent *event);

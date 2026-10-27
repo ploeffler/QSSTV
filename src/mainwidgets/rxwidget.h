@@ -11,6 +11,10 @@ class rxFunctions;
 class imageViewer;
 class spectrumWidget;
 class vuMeter;
+class QComboBox;
+class QPlainTextEdit;
+class QLabel;
+class QCheckBox;
 
 
 namespace Ui {
@@ -47,8 +51,13 @@ public:
   void setSettingsTab();
   void changeTransmissionMode(int rxtxMode);
   bool rxBusy();
+  void setKgstvBusy(bool busy);
 
 private slots:
+  void slotKgstvImage(QImage image,int received,bool complete,quint64 epoch);
+  void slotKgstvText(QString sender,QString text);
+  void slotKgstvStatus(QString status);
+  void slotKgstvLocalText(QString text,bool sent);
   void slotStart();
   void slotStop();
   void slotResync();
@@ -74,5 +83,10 @@ private:
   void setParams();
   ftpFunctions ff;
   bool doRemove;
+  QComboBox *kgstvModulation;
+  QCheckBox *kgstvAutoSave;
+  QPlainTextEdit *kgstvHistory;
+  QLabel *kgstvStatus;
+  bool kgstvSaved=false;
 };
 #endif // RXWIDGET_H
