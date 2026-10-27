@@ -52,6 +52,9 @@ public:
 public slots:
 	void slotFileNew();
 	void slotFileOpen();
+  void slotImportMmsstv();
+  void slotImportMmsstvBatch();
+  void slotTemplateTransparency();
 	void slotFileSave();
 	void slotFileSaveImage();
 	void slotFileSaveTemplate();
@@ -65,8 +68,12 @@ private:
 	void initMenubar();
 
 	void writeSettings();
+  bool saveToFile(const QString &path, bool templ);
 	QAction *fileNew;
 	QAction *fileOpen;
+  QAction *fileImportMmsstv;
+  QAction *fileImportMmsstvBatch;
+  QAction *templateTransparency;
 	QAction *fileSave;
 	QAction *fileSaveImage;
 	QAction *fileSaveTemplate;
@@ -78,6 +85,7 @@ private:
 	QMenu *fileMenu;
 	QMenu *editMenu;
 	QFile localFile;
+  bool localFileTemplate = true;
 	QFile externalFile;
 };
 

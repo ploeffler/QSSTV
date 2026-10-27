@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "repeaterconfig.h"
 #include "ui_repeaterconfig.h"
 #include "directoriesconfig.h"
@@ -67,7 +68,7 @@ repeaterConfig::~repeaterConfig()
 
 void repeaterConfig::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("REPEATER");
   repeaterImageInterval=qSettings.value("repeaterImageInterval",10).toInt();
   repeaterEnabled=qSettings.value("repeaterEnabled",false).toBool();
@@ -88,7 +89,7 @@ void repeaterConfig::readSettings()
 
 void repeaterConfig::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup("REPEATER");
   qSettings.setValue("repeaterImageInterval",repeaterImageInterval);

@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "drmprofileconfig.h"
 #include "ui_drmprofileconfig.h"
 #include "supportfunctions.h"
@@ -44,7 +45,7 @@ drmProfileConfig::~drmProfileConfig()
 
 void drmProfileConfig::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup ("DRMPROFILE" );
   drmPFArray[0].name=qSettings.value ("drmPF1Name","Profile 1").toString();
   drmPFArray[0].params.robMode=qSettings.value ("drmPF1Mode",0).toInt();
@@ -76,7 +77,7 @@ void drmProfileConfig::readSettings()
 
 void drmProfileConfig::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup ("DRMPROFILE" );
   qSettings.setValue ("drmPF1Name",drmPFArray[0].name);

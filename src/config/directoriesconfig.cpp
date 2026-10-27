@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "directoriesconfig.h"
 #include "ui_directoriesconfig.h"
 
@@ -56,7 +57,7 @@ directoriesConfig::~directoriesConfig()
 
 void directoriesConfig::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("DIRECTORIES");
   rxSSTVImagesPath=qSettings.value("rxSSTVImagesPath",QString(getenv("HOME"))+"/qsstv/rx_sstv/").toString();
   rxDRMImagesPath=qSettings.value("rxDRMImagesPath",QString(getenv("HOME"))+"/qsstv/rx_drm/").toString();
@@ -74,7 +75,7 @@ void directoriesConfig::readSettings()
 
 void directoriesConfig::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup("DIRECTORIES");
   qSettings.setValue("rxSSTVImagesPath",rxSSTVImagesPath);

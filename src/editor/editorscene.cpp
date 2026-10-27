@@ -19,6 +19,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include <QtGui>
+#include <QSaveFile>
 
 #include "editorscene.h"
 #include "gradientdialog.h"
@@ -31,6 +32,9 @@
 #include "txwidget.h"
 #endif
 
+
+// Optional native 9.6 record; legacy templates without it keep their format.
+static const int TEMPLATE_COLORKEY_RECORD=0x4d4d434b; // MMCK
 
 #undef ENABLETEMPLATEVIEWER
 
@@ -125,7 +129,8 @@ bool editorScene::load(QFile &f)
         }
     }
   imageType=TEMPLATE;
-  str >> version;  // at this moment we do not use the version
+  bool keyRecordSeen=false;
+  str >> version;  // optional records determine the required reader capabilities
   str >> streamVersion;
   str.setVersion(streamVersion);
   while (!str.atEnd())
@@ -133,6 +138,21 @@ bool editorScene::load(QFile &f)
       str >> type;
       switch (type)
         {
+        case TEMPLATE_COLORKEY_RECORD:
+          {
+            QColor background;QPoint point;QSize canvas;
+            str >> background >> point >> canvas;
+            if(keyRecordSeen || str.status()!=QDataStream::Ok || !background.isValid() || background.alpha()!=255 ||
+               canvas.width()<1 || canvas.height()<1 || canvas.width()>4096 || canvas.height()>4096 ||
+               point.x()<0 || point.y()<0 || point.x()>=canvas.width() || point.y()>=canvas.height()) {
+              f.close();return false;
+            }
+            keyRecordSeen=true;
+            templateColorKey=true;templateBackground=background;
+            templateKeyPoint=point;templateKeyCanvas=canvas;
+            setBackgroundBrush(background);
+            continue;
+          }
         case graphItemBase::RECTANGLE:
           item=new itemRectangle(contextMenu);
           break;
@@ -191,10 +211,7 @@ QImage *editorScene::renderImage(int w,int h)
       localImage=new QImage(w,h,QImage::Format_ARGB32_Premultiplied);
     }
   addToLog(QString("editorScene: pre-render size: %1 x %2").arg(localImage->size().width()).arg(localImage->size().height()),LOGEDIT);
-  QPainter painter(localImage);
-  painter.setRenderHint(QPainter::Antialiasing);
-  localImage->fill(0);
-  render(&painter);
+  renderTemplate(*localImage,Qt::KeepAspectRatio);
   addToLog(QString("editor: post-render size: %1 x %2").arg(localImage->size().width()).arg(localImage->size().height()),LOGEDIT);
 #ifdef ENABLETEMPLATEVIEWER
   templateViewer tv;
@@ -216,9 +233,15 @@ void editorScene::overlay(QImage *ima)
   addToLog(QString("localImageSize %1,%2").arg(localImage->width()).arg(localImage->height()),LOGEDIT);
   convertText();
   convertReplayImage();
-  QPainter painter(localImage);
-  painter.setRenderHint(QPainter::Antialiasing);
-  render(&painter,QRectF(),QRectF(),Qt::IgnoreAspectRatio);
+  if(templateColorKey) {
+    QImage layer(localImage->size(),QImage::Format_ARGB32_Premultiplied);
+    renderTemplate(layer);
+    QPainter painter(localImage);painter.drawImage(0,0,layer);
+  } else {
+    QPainter painter(localImage);
+    painter.setRenderHint(QPainter::Antialiasing);
+    render(&painter,QRectF(),QRectF(),Qt::IgnoreAspectRatio);
+  }
 #ifdef ENABLETEMPLATEVIEWER
   templateViewer tv;
   qDebug() << "items" << items().count()<<sceneRect();
@@ -248,24 +271,24 @@ bool editorScene::save(QFile &f,bool templ)
            ,LOGEDIT);
   if(!templ)
     {
-      QPainter painter(&im);
-      painter.setRenderHint(QPainter::Antialiasing);
-      render(&painter);
+      renderTemplate(im);
 #ifdef ENABLETEMPLATEVIEWER
       templateViewer tv;
       qDebug() << "items" << items().count()<<sceneRect();
       tv.setImage(&im);
       tv.exec();
 #endif
-      im.save(&f,"PNG");
-      return true;
+      QSaveFile output(f.fileName());
+      if (!output.open(QIODevice::WriteOnly)) return false;
+      return im.save(&output,"PNG") && output.commit();
     }
-  if(!f.open(QIODevice::WriteOnly)) return false;
-  QDataStream str(&f);
+  QSaveFile output(f.fileName());
+  if (!output.open(QIODevice::WriteOnly)) return false;
+  QDataStream str(&output);
   str.setVersion(QDataStream::Qt_4_4);
   // Header with a "magic number" and a version
   str << (quint32) MAGICNUMBER;
-  str <<  CONFIGVERSION;
+  str << (templateColorKey?QString("9.6"):CONFIGVERSION);
   str << (quint16) QDataStream::Qt_4_4;
   graphItemBase *it;
   foreach(QGraphicsItem *t,items())
@@ -276,8 +299,8 @@ bool editorScene::save(QFile &f,bool templ)
           it->save(str);
         }
     }
-  f.close();
-  return true;
+  if(templateColorKey)str << TEMPLATE_COLORKEY_RECORD << templateBackground << templateKeyPoint << templateKeyCanvas;
+  return str.status()==QDataStream::Ok && output.commit();
 }
 
 void editorScene::flattenImage(int w,int h)
@@ -287,16 +310,13 @@ void editorScene::flattenImage(int w,int h)
   localImage=new QImage(w,h,QImage::Format_ARGB32_Premultiplied);
   convertText();
   convertReplayImage();
-  QPainter painter(localImage);
-  painter.setRenderHint(QPainter::Antialiasing);
-  localImage->fill(0);
-  render(&painter);
+  renderTemplate(*localImage,Qt::KeepAspectRatio);
 }
-
 
 void editorScene::convertReplayImage()
 {
 #ifndef STANDALONE
+  if(!txWidgetPtr)return;
   QString fn;
   imageViewer imv;
 
@@ -357,6 +377,7 @@ void editorScene::apply(changeFlags cf)
       it=qgraphicsitem_cast<graphItemBase *>(t);
       if(cf & DFILLCOLOR)
         {
+          if(t->type()==graphItemBase::TEXT)it->setImage(QImage());
           it->setBrush(fillColor);
         }
       if(cf & DLINECOLOR)
@@ -376,6 +397,7 @@ void editorScene::apply(changeFlags cf)
           gradientDialog gd;
           sgradientParam tmp;
           tmp=gd.param();
+          if(t->type()==graphItemBase::TEXT)it->setImage(QImage());
           it->setGradient(tmp);
           it->update();
         }
@@ -395,6 +417,8 @@ void editorScene::apply(changeFlags cf)
 
 void editorScene::clearAll()
 {
+  templateColorKey=false;
+  setBackgroundBrush(Qt::NoBrush);
   graphItemBase *r;
   foreach(QGraphicsItem *t,items())
     {
@@ -825,3 +849,129 @@ void editorScene::dumpItems()
 
 
 
+
+// The parser validates the complete file before this replaces the scene.
+void editorScene::importMmsstv(const Mmsstv::Document &document)
+{
+  clearAll();
+  templateColorKey=document.colorKey;
+  templateBackground=document.background;
+  templateKeyPoint=document.transparencyPoint;
+  templateKeyCanvas=document.size;
+  if(templateColorKey)setBackgroundBrush(templateBackground);
+  imageType=TEMPLATE;
+  const Qt::PenStyle styles[] = {Qt::SolidLine, Qt::DashLine, Qt::DotLine,
+                                Qt::DashDotLine, Qt::DashDotDotLine, Qt::NoPen, Qt::SolidLine};
+  int depth=1;
+  for (const Mmsstv::Item &source : document.items) {
+    graphItemBase *item=nullptr;
+    switch (source.kind) {
+      case Mmsstv::Item::Line: item=new itemLine(contextMenu); break;
+      case Mmsstv::Item::Rectangle: item=new itemRectangle(contextMenu); break;
+      case Mmsstv::Item::Ellipse: item=new itemEllipse(contextMenu); break;
+      case Mmsstv::Item::Text: item=new itemText(contextMenu); break;
+      case Mmsstv::Item::Image: item=new itemImage(contextMenu); break;
+      case Mmsstv::Item::Replay: item=new itemReplayImage(contextMenu); break;
+    }
+    sitemParam *param=item->getParamPtr();
+    param->rotation=0;
+    param->hShear=0;
+    param->vShear=0;
+    param->gradient=sgradientParam();
+    param->gradient.pos1=param->gradient.pos2=param->gradient.pos3=param->gradient.pos4=0;
+    param->gradient.direction=0;
+    if (source.gradientDirection>=0 && source.gradientColors.size()==4) {
+      param->gradient.type=sgradientParam::LINEAR;
+      param->gradient.direction=source.gradientDirection;
+      param->gradient.color1=source.gradientColors[0];
+      param->gradient.color2=source.gradientColors[1];
+      param->gradient.color3=source.gradientColors[2];
+      param->gradient.color4=source.gradientColors[3];
+      param->gradient.pos1=0;
+      param->gradient.pos2=33;
+      param->gradient.pos3=67;
+      param->gradient.pos4=100;
+    }
+    item->setRect(0,0,source.rect.width(),source.rect.height());
+    item->setPos(source.rect.topLeft());
+    item->setPen(QPen(source.color,source.penWidth,styles[source.penStyle]));
+    item->setBrush(source.fill);
+    item->setFont(source.font);
+    item->setText(source.text);
+    item->setImage(source.image);
+    if (source.kind==Mmsstv::Item::Line) {
+      const qreal length=source.line.length();
+      item->setRect(0,0,length,2);
+      item->setPos(source.line.pointAt(0.5)-QPointF(length/2,1));
+      item->setTransform(qRound(-source.line.angle()),0,0);
+    } else if (source.kind==Mmsstv::Item::Text) {
+      item->setPos(source.rect.topLeft()+QPointF(0,QFontMetricsF(source.font).ascent()));
+      item->setTransform(-source.rotation,0,0);
+    }
+    item->setZValue(depth++);
+    addItem(item);
+  }
+  zMax=depth;
+  addBorder(document.size.width(),document.size.height());
+  if (borderItemPtr) borderItemPtr->setZValue(0);
+  clearSelection();
+}
+
+void editorScene::renderTemplate(QImage &image, Qt::AspectRatioMode aspect)
+{
+  image.fill(0);
+  const bool visible=borderItemPtr && borderItemPtr->isVisible();
+  if(borderItemPtr)borderItemPtr->setVisible(false);
+  {QPainter painter(&image);painter.setRenderHint(QPainter::Antialiasing);
+    render(&painter,QRectF(),border,aspect);}
+  if(borderItemPtr)borderItemPtr->setVisible(visible);
+  QSize content=image.size();
+  if(aspect==Qt::KeepAspectRatio && border.width()>0 && border.height()>0) {
+    const double scale=qMin(image.width()/border.width(),image.height()/border.height());
+    content=QSize(qRound(border.width()*scale),qRound(border.height()*scale));
+  }
+  applyTemplateColorKey(image,content);
+}
+
+void editorScene::applyTemplateColorKey(QImage &image, const QSize &contentSize)
+{
+  if(!templateColorKey || image.isNull() || templateKeyCanvas.isEmpty())return;
+  const int x=qBound(0,int(qint64(templateKeyPoint.x())*contentSize.width()/templateKeyCanvas.width()),image.width()-1);
+  const int y=qBound(0,int(qint64(templateKeyPoint.y())*contentSize.height()/templateKeyCanvas.height()),image.height()-1);
+  const QRgb key=image.pixel(x,y)&0xffffff;
+  for(int row=0;row<image.height();++row) {
+    QRgb *pixels=reinterpret_cast<QRgb *>(image.scanLine(row));
+    for(int col=0;col<image.width();++col)if((pixels[col]&0xffffff)==key)pixels[col]=0;
+  }
+}
+
+QColor editorScene::templateTransparencyBackground() const
+{
+  return templateBackground.isValid()?templateBackground:QColor(248,248,248);
+}
+
+QPoint editorScene::templateTransparencyPoint() const
+{
+  const QSize canvas=border.size().toSize();
+  if(templateKeyCanvas.isEmpty())return QPoint(qMax(0,canvas.width()-1),qMax(0,canvas.height()-1));
+  return QPoint(qBound(0,int(qint64(templateKeyPoint.x())*canvas.width()/templateKeyCanvas.width()),qMax(0,canvas.width()-1)),
+                qBound(0,int(qint64(templateKeyPoint.y())*canvas.height()/templateKeyCanvas.height()),qMax(0,canvas.height()-1)));
+}
+
+bool editorScene::setTemplateTransparency(bool enabled,const QColor &background,const QPoint &point,QString *error)
+{
+  if(error)error->clear();
+  const QSize canvas=border.size().toSize();
+  if(enabled && (canvas.width()<1 || canvas.height()<1 || canvas.width()>4096 || canvas.height()>4096 ||
+                 !background.isValid() || background.alpha()!=255 ||
+                 point.x()<0 || point.y()<0 || point.x()>=canvas.width() || point.y()>=canvas.height())) {
+    if(error)*error=tr("Choose an opaque background and a point inside a canvas of at most 4096 by 4096 pixels.");
+    return false;
+  }
+  templateColorKey=enabled;
+  if(enabled) {
+    templateBackground=background;templateKeyPoint=point;templateKeyCanvas=canvas;
+    setBackgroundBrush(background);
+  } else setBackgroundBrush(Qt::NoBrush);
+  update();return true;
+}

@@ -8,6 +8,7 @@
 
 
 #include <QThread>
+#include <atomic>
 #include <QMutex>
 
 #define BYTESPOWER 18
@@ -86,8 +87,8 @@ protected:
   qint16 tempRXBuffer[DOWNSAMPLESIZE*2*2]; // in some cases the hardware interface is stereo (can be S16_LE or S32_LE)
   quint32 tempTXBuffer[DOWNSAMPLESIZE*2];
   bool stopThread;
-  eplaybackState playbackState;
-  ecaptureState  captureState;
+  std::atomic<eplaybackState> playbackState;
+  std::atomic<ecaptureState> captureState;
 
 
   wavIO waveIn;

@@ -25,6 +25,7 @@
 //#include <QGraphicsView>
 //#include "graphics.h"
 #include "graphicitems.h"
+#include "mmsstvtemplate.h"
 #include "supportfunctions.h"
 #include "macroexpansion.h"
 
@@ -68,7 +69,12 @@ public:
   qreal hShear;
   qreal vShear;
   bool load(QFile &f);
+  void importMmsstv(const Mmsstv::Document &document);
   bool save(QFile &f,bool templ);
+  bool hasTemplateTransparency() const { return templateColorKey; }
+  QColor templateTransparencyBackground() const;
+  QPoint templateTransparencyPoint() const;
+  bool setTemplateTransparency(bool enabled,const QColor &background,const QPoint &point,QString *error);
   void setImage(QImage *im);
   eMode mode;
   eImageType getImageType(){return imageType;}
@@ -139,6 +145,12 @@ private:
   //  QString convertedText;
   graphItemBase *borderItemPtr;
   void convertReplayImage();
+  bool templateColorKey=false;
+  QColor templateBackground;
+  QPoint templateKeyPoint;
+  QSize templateKeyCanvas;
+  void renderTemplate(QImage &image, Qt::AspectRatioMode aspect=Qt::IgnoreAspectRatio);
+  void applyTemplateColorKey(QImage &image, const QSize &contentSize);
 
 };
 Q_DECLARE_OPERATORS_FOR_FLAGS(editorScene::changeFlags)

@@ -1,3 +1,4 @@
+#include "qsstvsettings.h"
 #include "waterfallform.h"
 #include "ui_waterfallform.h"
 #include "appglobal.h"
@@ -77,7 +78,7 @@ void waterfallForm::setParams()
 void waterfallForm::readSettings()
 {
   QFont ft;
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("Waterfall");
   txt1=qSettings.value("text1","").toString();
   txt2=qSettings.value("text2","").toString();
@@ -90,7 +91,7 @@ void waterfallForm::readSettings()
 void waterfallForm::writeSettings()
 {
   getParams();
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("Waterfall");
   qSettings.setValue("text1",txt1);
   qSettings.setValue("text2",txt2);

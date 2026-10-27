@@ -5,7 +5,7 @@
 - Added `src/sound/soundwindows.h` and `src/sound/soundwindows.cpp` as a Qt Multimedia-based Windows audio implementation.
 - Updated sound configuration, application UI, transmit widget and platform-dependent rig/XML-RPC code to compile in the Windows build.
 - Added `.github/workflows/windows.yml` for MSYS2/MinGW64, Qt 5 and a locally built Hamlib 4.6.3.
-- Collected `qsstv.exe` and available runtime DLLs/Qt plugins into the `QSSTV-Windows-experimental` Actions artifact.
+- Initial builds collected `qsstv.exe` and runtime DLLs/Qt plugins in a folder artifact. The current workflows instead package one self-extracting `QSSTV-<version>-Windows-x86_64-portable.exe`, using shared dependency collection and a waiting launcher. No installation or shortcuts are created.
 
 ## CI evidence
 The Windows workflow succeeded on `main` at merge commit `c7dd2dce`:
@@ -14,7 +14,7 @@ The Windows workflow succeeded on `main` at merge commit `c7dd2dce`:
 This demonstrates a successful CI compile and package step. It does **not** demonstrate correct sound-card operation, CAT/PTT interoperability, camera capture, or successful SSTV/HAMDRM transmission and reception.
 
 ## Required manual acceptance tests
-1. Extract the complete artifact and start `qsstv.exe` on a clean Windows machine.
+1. On a clean Windows machine, start the single portable EXE (extract it from GitHub's Actions artifact wrapper if necessary). Verify startup without Qt/MSYS2 installed and temporary-runtime cleanup after exit.
 2. Check sound device enumeration, input selection, output selection and sample-rate behavior.
 3. Receive a known SSTV signal and compare the decoded image against a reference.
 4. Transmit a known SSTV test image into a dummy load or controlled test setup and verify decoding.
@@ -30,3 +30,5 @@ This demonstrates a successful CI compile and package step. It does **not** demo
 - The existing Windows workflow's automatic experimental release step is restricted to pushes on `feature/windows-port-implementation`; builds on `main` upload Actions artifacts but do not publish a release.
 
 See [PACKAGING.md](PACKAGING.md) and [RELEASE_NOTES_EXPERIMENTAL.md](RELEASE_NOTES_EXPERIMENTAL.md).
+
+The single-EXE packaging has local archive/dependency/workflow regression coverage; an actual Windows run is still required. Windows CI includes a device-free launcher/SFX smoke test. Settings remain per-user and are not stored inside the portable EXE. See [PACKAGING.md](PACKAGING.md) for details.

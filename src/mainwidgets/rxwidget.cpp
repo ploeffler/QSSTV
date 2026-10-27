@@ -1,3 +1,13 @@
+#include "qsstvsettings.h"
+#include "kgstvcontroller.h"
+#include "gallerywidget.h"
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QComboBox>
+#include <QPlainTextEdit>
+#include <QSignalBlocker>
+#include <QTemporaryFile>
+#include <QCheckBox>
 #include "rxwidget.h"
 #include "appglobal.h"
 #include "dispatcher.h"
@@ -21,6 +31,28 @@ rxWidget::rxWidget(QWidget *parent):QWidget(parent),ui(new Ui::rxWidget)
   int i;
   ui->setupUi(this);
   rxFunctionsPtr=new rxFunctions();
+  QWidget *kgstvTab=new QWidget(this);QVBoxLayout *kgstvLayout=new QVBoxLayout(kgstvTab);
+  QLabel *notice=new QLabel(tr("Experimental KG-STV. Original interoperability is unverified."),kgstvTab);notice->setWordWrap(true);kgstvLayout->addWidget(notice);
+  kgstvModulation=new QComboBox(kgstvTab);kgstvModulation->setObjectName("kgstvRxModulation");kgstvModulation->addItems({"MSK","4L-FSK"});kgstvLayout->addWidget(kgstvModulation);
+  kgstvAutoSave=new QCheckBox(tr("Save complete KG-STV images automatically"),kgstvTab);kgstvAutoSave->setObjectName("kgstvAutoSave");kgstvAutoSave->setChecked(autoSave);kgstvLayout->addWidget(kgstvAutoSave);
+  connect(kgstvAutoSave,&QCheckBox::toggled,this,[this](bool checked){autoSave=checked;ui->autoSaveCheckBox->setChecked(checked);});
+  connect(ui->autoSaveCheckBox,&QCheckBox::toggled,kgstvAutoSave,&QCheckBox::setChecked);
+  kgstvStatus=new QLabel(tr("KG-STV ready"),kgstvTab);kgstvStatus->setWordWrap(true);kgstvStatus->setTextFormat(Qt::PlainText);kgstvStatus->setMaximumHeight(80);kgstvStatus->setObjectName("kgstvRxStatus");kgstvLayout->addWidget(kgstvStatus);
+  kgstvHistory=new QPlainTextEdit(kgstvTab);kgstvHistory->setReadOnly(true);kgstvHistory->setMaximumBlockCount(1000);kgstvHistory->setObjectName("kgstvMessageHistory");kgstvLayout->addWidget(kgstvHistory);
+  ui->settingsTableWidget->addTab(kgstvTab,tr("KG-STV (experimental)"));
+  if(kgstvControllerPtr) {
+    auto sync=[this](){QSignalBlocker block(kgstvModulation);kgstvModulation->setCurrentIndex(kgstvControllerPtr->options().fourLevel?1:0);};sync();
+    connect(kgstvControllerPtr,&Kgstv::Controller::optionsChanged,this,sync,Qt::QueuedConnection);
+    connect(kgstvModulation,QOverload<int>::of(&QComboBox::activated),this,[this,sync](int index){
+      auto options=kgstvControllerPtr->options();options.fourLevel=index==1;QString error;
+      if(!kgstvControllerPtr->configure(options,&error)){sync();QMessageBox::warning(this,tr("KG-STV"),error);}
+    });
+    connect(kgstvControllerPtr,&Kgstv::Controller::imageChanged,this,&rxWidget::slotKgstvImage,Qt::QueuedConnection);
+    connect(kgstvControllerPtr,&Kgstv::Controller::messageReceived,this,&rxWidget::slotKgstvText,Qt::QueuedConnection);
+    connect(kgstvControllerPtr,&Kgstv::Controller::statusChanged,this,&rxWidget::slotKgstvStatus,Qt::QueuedConnection);
+    connect(kgstvControllerPtr,&Kgstv::Controller::localTextResult,this,&rxWidget::slotKgstvLocalText,Qt::QueuedConnection);
+  }
+
   ui->syncWidget->setHorizontal(false);
   ui->syncWidget->setLabelText("S");
 
@@ -106,7 +138,7 @@ void rxWidget::init()
 
 void rxWidget::readSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("RX");
   autoSlantAdjust=qSettings.value("autoSlantAdjust",false).toBool();
   autoSave=qSettings.value("autoSave",true).toBool();
@@ -121,7 +153,7 @@ void rxWidget::readSettings()
 
 void rxWidget::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("RX");
   getParams();
   qSettings.setValue("autoSlantAdjust",autoSlantAdjust);
@@ -149,6 +181,7 @@ void rxWidget::setParams()
 {
   setValue(autoSlantAdjust,ui->autoSlantAdjustCheckBox);
   setValue(autoSave,ui->autoSaveCheckBox);
+  kgstvAutoSave->setChecked(autoSave);
   setIndex(sensitivity,ui->sensitivityComboBox);
   setIndex(sstvModeIndexRx,ui->sstvModeComboBox);
   setValue(defaultImageFormat,ui->defaultImageFormatComboBox);
@@ -195,6 +228,10 @@ void rxWidget::changeTransmissionMode(int rxtxMode)
       mainWindowPtr->setSSTVDRMPushButton(false);
       ui->resyncToolButton->setEnabled(true);
       break;
+    case TRXKGSTV:
+      mainWindowPtr->setSSTVDRMPushButton(false);
+      ui->resyncToolButton->setEnabled(false);
+      break;
     case TRXDRM:
       mainWindowPtr->setSSTVDRMPushButton(true);
       ui->resyncToolButton->setEnabled(false);
@@ -226,7 +263,7 @@ void rxWidget::slotResetCall()
 void rxWidget::slotErase()
 {
   rxFunctionsPtr->eraseImage();
-  imageViewerPtr->createImage(QSize(320,256),imageBackGroundColor,imageStretch);
+  imageViewerPtr->createImage(transmissionModeIndex==TRXKGSTV?QSize(320,240):QSize(320,256),imageBackGroundColor,imageStretch);
 }
 
 
@@ -236,9 +273,9 @@ void rxWidget::slotSave()
   QString path;
   QString info;
   dirDialog d(this);
-  if(transmissionModeIndex==TRXSSTV)
+  if(transmissionModeIndex==TRXSSTV || transmissionModeIndex==TRXKGSTV)
     {
-      path=rxSSTVImagesPath;
+      path=transmissionModeIndex==TRXKGSTV?rxDRMImagesPath:rxSSTVImagesPath;
 
     }
   else
@@ -250,8 +287,9 @@ void rxWidget::slotSave()
   info="";
   QString fileName=d.saveFileName(path,"*","png");
   if (fileName.isNull()) return ;
-  getImageViewerPtr()->save(fileName,defaultImageFormat,true,false);
-  dispatcherPtr->saveImage(fileName,info);
+  getImageViewerPtr()->save(fileName,transmissionModeIndex==TRXKGSTV?QString("png"):defaultImageFormat,true,false);
+  if(transmissionModeIndex==TRXKGSTV)galleryWidgetPtr->putRxImage(fileName);
+  else dispatcherPtr->saveImage(fileName,info);
 }
 
 void rxWidget::setOnlineStatus(bool online, QString info)
@@ -351,19 +389,28 @@ void rxWidget::setSettingsTab()
           if(i!=transmissionModeIndex) ui->settingsTableWidget->widget(i)->setEnabled(false);
         }
       ui->settingsTableWidget->widget(transmissionModeIndex)->setEnabled(true);
+      QSignalBlocker blocker(ui->settingsTableWidget);
       ui->settingsTableWidget->setCurrentIndex(transmissionModeIndex);
     }
   ui->vuWidget->setMaximum(100);
   ui->vuWidget->setMinimum(0);
   ui->vuWidget->setValue(-15);
-  if(transmissionModeIndex==TRXDRM)
+  ui->syncWidget->setLabelText(transmissionModeIndex==TRXKGSTV?"B":"S");
+  ui->syncWidget->setToolTip(transmissionModeIndex==TRXKGSTV?tr("Received KG-STV image blocks"):QString());
+  if(transmissionModeIndex==TRXKGSTV) {
+    ui->syncWidget->setColors(Qt::red,QColor(255,165,0),Qt::green);
+    ui->syncWidget->setMaximum(300);ui->syncWidget->setMinimum(0);
+    ui->syncWidget->setValue(kgstvControllerPtr?kgstvControllerPtr->receivedCount():0);
+    if(mainWindowPtr && mainWindowPtr->spectrumFramePtr)mainWindowPtr->spectrumFramePtr->displaySettings(false);
+  }
+  else if(transmissionModeIndex==TRXDRM)
     {
       ui->syncWidget->setColors(QColor(0,90,0),QColor(0,190,0),Qt::green);
       ui->syncWidget->setMaximum(25.);
       ui->syncWidget->setMinimum(5.);
       ui->syncWidget->setValue(0.);
       ui->vuWidget->setColors(QColor(255,50,0),Qt::green,Qt::red);
-      mainWindowPtr->spectrumFramePtr->displaySettings(true);
+      if(mainWindowPtr && mainWindowPtr->spectrumFramePtr)mainWindowPtr->spectrumFramePtr->displaySettings(true);
     }
   else
     {
@@ -372,7 +419,7 @@ void rxWidget::setSettingsTab()
       ui->syncWidget->setMinimum(0.);
       ui->syncWidget->setValue(0.);
       ui->vuWidget->setColors(QColor(255,50,0),Qt::green,Qt::red);
-      mainWindowPtr->spectrumFramePtr->displaySettings(false);
+      if(mainWindowPtr && mainWindowPtr->spectrumFramePtr)mainWindowPtr->spectrumFramePtr->displaySettings(false);
     }
 }
 
@@ -411,3 +458,31 @@ vuMeter *rxWidget::sMeterPtr()
   return ui->syncWidget;
 }
 
+
+void rxWidget::setKgstvBusy(bool busy){kgstvModulation->setEnabled(!busy);}
+void rxWidget::slotKgstvImage(QImage image,int received,bool complete,quint64 epoch)
+{
+  if(transmissionModeIndex!=TRXKGSTV || !kgstvControllerPtr || epoch!=kgstvControllerPtr->receiveEpoch())return;
+  imageViewerPtr->openImage(image);
+  kgstvStatus->setText(tr("KG-STV: %1/300 blocks").arg(received));
+  ui->syncWidget->setValue(received);
+  if(!complete)kgstvSaved=false;
+  if(complete && !kgstvSaved && autoSave) {
+    QTemporaryFile file(QDir(rxDRMImagesPath).filePath("KGSTV_"+QDateTime::currentDateTimeUtc().toString("yyyyMMdd_HHmmss_")+"XXXXXX.png"));
+    if(file.open() && image.save(&file,"PNG") && file.flush()) {
+      file.setAutoRemove(false);file.close();kgstvSaved=true;galleryWidgetPtr->putRxImage(file.fileName());
+    } else kgstvStatus->setText(tr("KG-STV image received; automatic save failed."));
+  }
+}
+void rxWidget::slotKgstvText(QString sender,QString text)
+{
+  kgstvHistory->appendPlainText(QString("[%1 UTC] %2: %3").arg(QDateTime::currentDateTimeUtc().toString("HH:mm:ss"),sender.isEmpty()?tr("Unknown sender"):sender,text));
+}
+void rxWidget::slotKgstvLocalText(QString text,bool sent)
+{
+  kgstvHistory->appendPlainText(QString("[%1 UTC] %2: %3").arg(QDateTime::currentDateTimeUtc().toString("HH:mm:ss"),sent?tr("TX sent locally"):tr("TX canceled/failed"),text));
+}
+void rxWidget::slotKgstvStatus(QString status)
+{
+  if(transmissionModeIndex==TRXKGSTV)kgstvStatus->setText(status);
+}

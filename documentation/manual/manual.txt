@@ -64,6 +64,16 @@ Johan ON4QZ
 
 \page whatsnew What's New
 
+QSSTV 9.6.0 development build
+- MMSSTV .mtm import with preview and editable .templ output.
+- Batch import with collision-safe output names and per-file reports.
+- Editable sampled template transparency; legacy templates remain readable.
+- Linux settings in ~/.config/qsstv_<version>.conf (currently qsstv_9.6.0.conf).
+  Older configurations are upgraded automatically; originals are preserved.
+  XDG_CONFIG_HOME overrides the directory.
+- Experimental native KG-STV RX/TX, standalone ASCII text and manual BSR.
+  Original interoperability and real audio/radio operation remain unverified.
+
 QSSTV 9.5.x Support for Qt 5.15.X
 
 QSSTV 9.4.x has the following new features compared to QSSTV 9.3.x
@@ -1060,6 +1070,8 @@ Object have also a z-component, i.e they can be in front our behind another obje
 - Save file ..: Save the file under the same name
 - Save Image file ..: Create a normal image file. All items will be rendered (flattened) to create one single image.
 - Save Template ..: Create template file. All items will be editable when the file is loaded again.
+- Template transparency... (Edit menu): enable/disable whole-template sampled transparency, choose its background and set the sample point numerically or by left-clicking the live checkerboard preview. Disabling it restores ordinary alpha rendering and legacy template serialization.
+- Import MMSSTV template... (File menu): load an .mtm template, inspect the conversion preview and warnings, then import editable objects. Save the result as a new .templ file. The original .mtm is preserved. The checkerboard preview shows whole-template sampled transparency. Templates saved with this transparency require the new 9.6-format reader; older templates remain readable. Embedded picture masks are preserved as image transparency; their vertices are not separately editable. Unsupported OLE/custom objects are rejected; complex text effects and some layouts may be simplified.
 - Quit Exit the editor
 
 
@@ -1263,7 +1275,10 @@ Macro's where the value is defined in the configuration
 
 Macro's where the value is entered in the TX-window prior to transmission
 \li %%c - call of the contacted station
+\li %%C - call of the contacted station in lowercase
 \li %%r - RSV (radio-strength-video best is 595) You can also input free text as is sometimes required for contest (e.g. 595#007 or Good Copy)
+\li %%R - first three characters of the TX RSV field; no default report is invented
+\li %%N - exact suffix after the first three characters of TX RSV (e.g. #007 for 595#007)
 \li %%o - name of the operator of the contacted station
 \li %%x - comment1
 \li %%y - comment2
@@ -1272,8 +1287,12 @@ Macro's where the value is entered in the TX-window prior to transmission
 Note: comment 1,2 and 3 can be multi-line.
 
 Macro's where the value is defined by the system
-\li %%t - time in hours: minutes format
-\li %%d - date in year/month/day format
+\li %%t - UTC time in hh:mm format
+\li %%T - UTC time in hhmm format
+\li %%d - UTC date in yyyy/MM/dd format
+\li %%D - local date in yyyy/MM/dd format
+\li %%U - local time in hh:mm format
+\li %%u - local time in hhmm format
 \li %%v - qsstv_version
 \li %%s - SNR only in DRM mode
 - in version 9.3 only used in the WF Text see also \ref statusbar

@@ -1,3 +1,5 @@
+#include "qsstvsettings.h"
+#include "kgstvcontroller.h"
 #include "appglobal.h"
 #include "logging.h"
 #include "soundbase.h"
@@ -5,9 +7,9 @@
 #include <QCursor>
 
 
-const QString MAJORVERSION  = "9.5";
+const QString MAJORVERSION  = "9.6";
 const QString CONFIGVERSION = "9.0";
-const QString MINORVERSION  = ".11";
+const QString MINORVERSION  = ".0";
 const QString LOGVERSION = ("qsstv."+MAJORVERSION+MINORVERSION+".log");
 const QString ORGANIZATION = "ON4QZ";
 const QString APPLICATION  = ("qsstv_" +CONFIGVERSION);
@@ -18,6 +20,7 @@ const QString APPNAME=QString("QSSTV");
 QSplashScreen *splashPtr;
 QString splashStr;
 
+Kgstv::Controller *kgstvControllerPtr=nullptr;
 mainWindow *mainWindowPtr;
 soundBase *soundIOPtr;
 logFile *logFilePtr;
@@ -73,7 +76,7 @@ void globalInit()
 {
   logFilePtr=new logFile();
   logFilePtr->open(LOGVERSION);
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup("MAIN");
   logFilePtr->readSettings();
   greenPXMPtr=new QPixmap(16,16);
@@ -81,10 +84,22 @@ void globalInit()
   redPXMPtr=new QPixmap(16,16);
   redPXMPtr->fill(Qt::red);
   qSettings.endGroup();
+  kgstvControllerPtr=new Kgstv::Controller;
+  qSettings.beginGroup("KGSTV");
+  Kgstv::Options options;
+  options.quality=qBound(0,qSettings.value("quality",8).toInt(),15);
+  options.fec=qSettings.value("fec",true).toBool();options.fourLevel=qSettings.value("fourLevel",false).toBool();
+  kgstvControllerPtr->configure(options);
+  qSettings.endGroup();
 }
 
 void globalEnd(void)
 {
+  if(kgstvControllerPtr) {
+    QsstvSettings settings;settings.beginGroup("KGSTV");const auto options=kgstvControllerPtr->options();
+    settings.setValue("quality",options.quality);settings.setValue("fec",options.fec);settings.setValue("fourLevel",options.fourLevel);settings.endGroup();
+    delete kgstvControllerPtr;kgstvControllerPtr=nullptr;
+  }
   logFilePtr->writeSettings();
   logFilePtr->close();
 }

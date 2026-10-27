@@ -19,6 +19,7 @@
 *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ***************************************************************************/
 
+#include "qsstvsettings.h"
 #include "rigconfig.h"
 #include "ui_rigconfig.h"
 #include "appglobal.h"
@@ -58,7 +59,7 @@ void rigConfig::attachRigController(rigControl *rigCtrl)
 void rigConfig::readSettings()
 {
   cp=rigController->params();
-  QSettings qSettings;
+  QsstvSettings qSettings;
   qSettings.beginGroup(cp->configLabel);
   cp->serialPort=qSettings.value("serialPort","/dev/ttyS0").toString();
   cp->radioModel=qSettings.value("radioModel","dummy").toString();
@@ -85,7 +86,7 @@ void rigConfig::readSettings()
 
 void rigConfig::writeSettings()
 {
-  QSettings qSettings;
+  QsstvSettings qSettings;
   getParams();
   qSettings.beginGroup(cp->configLabel);
   qSettings.setValue("serialPort",cp->serialPort);
